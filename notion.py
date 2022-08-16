@@ -30,6 +30,7 @@ class NotionClient():
 
     # Get all the registered recipes in Notion
     def query_recipes(self):
+        print(f'Getting recipes currently in the table')
         return self.query_table(self.NOTION_DB, {})
 
     # Get all recipes which are scheduled for a specific day

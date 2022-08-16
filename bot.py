@@ -57,15 +57,19 @@ async def meals(ctx: commands.Context):
 
 @bot.command(name='plan', help="Plans the week if it hasn't been planned")
 async def plan(ctx: commands.Context):
+    print(f'Attempting to schedule meals for the week')
 
+    print(f'Generating random seed for the current week')
     # Generate seed for consistent generation in the same week
     calendar = datetime.datetime.now().isocalendar()
     seed = "{year}{week}".format(week=calendar.week, year=calendar.year)
     random.seed(seed)
+    print(f'Seed: {seed}')
 
     # Query notion to see if there is a plan, if so, do nothing
     query_results = notion_client.query_recipes()
     recipes_from_table = query_results['results']
+    print(f'Retrieval of recipes was successful')
     meal_cache = {
         'Breakfast': filter_recipes_for_meal(recipes_from_table, "Breakfast"),
         'Lunch': filter_recipes_for_meal(recipes_from_table, "Lunch"),
@@ -77,12 +81,13 @@ async def plan(ctx: commands.Context):
         'Lunch': [],
         'Dinner': [],
     })
-
+    print(f'Choosing unique recipes from the recipe table')
     # Create a global chosen set map to prevent duplicates across meals of the week
     chosen_meals = set()
     for meal in list(meals_for_the_week.keys()):
         meals_for_the_week[meal] = list(choose_unique_recipes(meal_cache[meal], chosen_meals))
 
+    print(f'Creating formatted output for weekly recipes')
     # Format the output into a table, saved just in case updating doesn't work, 
     # we can respond and allow user to manually update notion
     table = format_output_weekly(meals_for_the_week)
@@ -97,11 +102,14 @@ async def plan(ctx: commands.Context):
     chosen_meals_to_relation_ids = get_meal_to_relation_id(flat_chosen_meals, days_relation_ids)
 
     page_to_relation_id = get_page_to_relation_id(query_results['results'], flat_chosen_meals, chosen_meals_to_relation_ids)
+    print(f'Updating Notion with meal schedule')
     failures = update_notion_with_meals(notion_client, page_to_relation_id)
 
     if failures > 0:
         await ctx.send("Encountered failures when submitting meal plan, manual updates required")
-
+    else:
+        print(f'No failures encountered we are gucci')
+        
     await ctx.send('```{table}```'.format(table=table))
 
 bot.run(TOKEN)
