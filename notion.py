@@ -34,6 +34,7 @@ class NotionClient():
 
     # Get all recipes which are scheduled for a specific day
     def query_planned_meals(self):
+        print(f'Attempting to query Notion for planned meals')
         or_filter = []
         for value in list(PAGE_FOR_WEEKDAY.keys()):
             or_filter.append({
@@ -49,7 +50,7 @@ class NotionClient():
         }
 
         meal_table = self.query_table(self.NOTION_DB, payload)
-
+        print(f'Planned meals retrieval successful, returning planned meals')
         return meal_table
 
     # Update a Recipe with the designated day

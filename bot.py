@@ -8,10 +8,6 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from utils import choose_unique_recipes, debug, filter_recipes_for_meal, format_output, format_output_weekly, get_meal_to_relation_id, get_page_to_relation_id, update_notion_with_meals
 
-# TODO: Comment each function in this file
-# TODO: Deploy somewhere
-# TODO: Look at other bot setups to see what we can do for maintainability
-
 load_dotenv()
 client = discord.Client()
 bot = commands.Bot(command_prefix='!')
@@ -27,9 +23,12 @@ random.seed("{year}{week}".format(week=calendar.week, year=calendar.year))
 
 @bot.command(name='meals', help="Responds with the currently planned meals")
 async def meals(ctx: commands.Context):
+    print(f'Attempting to display meals for the current week')
+
     # Get meals planned for each day
     planned_meals = notion_client.query_planned_meals()
 
+    print(f'Adding planned meals to mapping of day to meals for the day')
     meals = dict({})
     # Parse results for name and when the meal is happening
     for planned_meal in planned_meals['results']:
@@ -46,10 +45,12 @@ async def meals(ctx: commands.Context):
                 meals[day_of_the_week] = []
             
             meals[day_of_the_week].append(name)
-    
+    print(f'Planned meals added for formatting')
+
     # Pretty format the meals for the week
     table = format_output(meals)
 
+    print(f'Retrieval and formatting of meals successful, sending to chat')
     # Respond with bot message
     await ctx.send('```{table}```'.format(table=table))
 
