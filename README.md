@@ -8,7 +8,7 @@ A .env file is required for running the bot, please reach out for template value
 
 ```pip install -r requirements.txt```
 
-_pip3 may have to be used for the above depending on your curret setup_
+_pip3 may have to be used for the above depending on your current setup_
 
 ## Development
 
