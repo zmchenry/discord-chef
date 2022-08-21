@@ -1,5 +1,5 @@
 import json
-from random import random
+import random
 from typing import Set
 from prettytable import PrettyTable
 
@@ -82,7 +82,9 @@ def update_notion_with_meals(notion_client, page_to_relation_id):
     # Update notion by passing in new recipe information
     # Iterate through page_to_relation_id keys
     for page in list(page_to_relation_id):
+        print(f'Updating page {page}')
         if notion_client.update_recipe_with_day(page, page_to_relation_id[page]) != 200:
+            print(f'Updating page {page} failed')
             failures += 1
     
     return failures

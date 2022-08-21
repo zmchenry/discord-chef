@@ -3,6 +3,7 @@ import requests
 import os
 import notion_client
 from constants import PAGE_FOR_WEEKDAY
+from utils import debug
 
 WHEN_ATTRIBUTE_ID = "%5CP%22-"
 
@@ -56,7 +57,7 @@ class NotionClient():
 
     # Update a Recipe with the designated day
     def update_recipe_with_day(self, recipe_id: str, day_id):
-        url = "https://api.notion.com/v1/pages/{id}".format(id=self.recipe_id)
+        url = "https://api.notion.com/v1/pages/{id}".format(id=recipe_id)
 
         body = {
             "properties": {
@@ -67,5 +68,5 @@ class NotionClient():
         }
 
         response = requests.patch(url, json=body, headers=self.HEADERS)
-
-        return response.status == 200
+        
+        return response.status_code
