@@ -118,3 +118,7 @@ bot.run(TOKEN)
     # 1. Ability to determine what meal a recipe is scheduled for through Notion
     # 2. Auto-sort recipes for each day by time of day
     # 3. Ability to mark a recipe as manually overridden so it doesn't get overwritten by rerunning !plan
+    # 4. Command to replan with a different seed
+
+# TODO: Bugs
+    # 1. Seed doesn't seem to be working leading to different results each time !plan is run
