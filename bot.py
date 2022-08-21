@@ -119,7 +119,7 @@ bot.run(TOKEN)
     # 2. Auto-sort recipes for each day by time of day
     # 3. Ability to mark a recipe as manually overridden so it doesn't get overwritten by rerunning !plan
     # 4. Command to replan with a different seed
+    # 5. Clear shopping list trip and have feilds on all shopping list items
 
 # TODO: Bugs
-    # 1. Seed doesn't seem to be working leading to different results each time !plan is run
-    # 2. !plan is not formatting recipes as left aligned
+    # 1. !plan is not formatting recipes as left aligned
