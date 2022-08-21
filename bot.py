@@ -122,3 +122,4 @@ bot.run(TOKEN)
 
 # TODO: Bugs
     # 1. Seed doesn't seem to be working leading to different results each time !plan is run
+    # 2. !plan is not formatting recipes as left aligned
