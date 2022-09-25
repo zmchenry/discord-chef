@@ -57,6 +57,7 @@ async def meals(ctx: commands.Context):
 
 @bot.command(name='plan', help="Plans the week if it hasn't been planned")
 async def plan(ctx: commands.Context):
+    await ctx.send('🧑‍🍳 Planning weekly meals! This may take a few seconds 🥣')   
     print(f'Attempting to schedule meals for the week')
 
     print(f'Generating random seed for the current week')
@@ -103,6 +104,7 @@ async def plan(ctx: commands.Context):
 
     page_to_relation_id = get_page_to_relation_id(query_results['results'], flat_chosen_meals, chosen_meals_to_relation_ids)
     print(f'Updating Notion with meal schedule')
+    await ctx.send('✏️ Updating Notion with meal schedule 📝')
     failures = update_notion_with_meals(notion_client, page_to_relation_id)
 
     if failures > 0:
