@@ -10,7 +10,8 @@ import { DayCard } from "./DayCard";
 import { money, shortDate } from "./format";
 import { RecommendationCard } from "./RecommendationCard";
 import { ReviewView } from "./ReviewView";
-import { useSlotMutation, useWeek, useWeekAction, type SlotChange } from "./queries";
+import { useReplan, useSlotMutation, useWeek, useWeekAction, type SlotChange } from "./queries";
+import { ReplanDialog } from "./ReplanDialog";
 import { SlotSheet } from "./SlotSheet";
 
 export function WeekPage() {
@@ -25,7 +26,9 @@ export function WeekPage() {
   const [reviewing, setReviewing] = useState(false);
   const slotMutation = useSlotMutation(weekId);
   const autofill = useWeekAction(weekId, "autofill");
-  const replan = useWeekAction(weekId, "replan");
+  const replan = useReplan(weekId);
+  const [replanOpen, setReplanOpen] = useState(false);
+  const closeReplan = useCallback(() => setReplanOpen(false), []);
   const apply = useCallback((changes: SlotChange[]) => slotMutation.mutate(changes), [slotMutation]);
   const close = useCallback(() => setOpen(null), []);
 
@@ -78,9 +81,7 @@ export function WeekPage() {
           onOpen={(date, meal) => setOpen({ date, meal })}
           onApply={apply}
           onAutofill={() => autofill.mutate()}
-          onReplan={() => {
-            if (window.confirm("Clear every meal you haven't locked? Lock the ones you want to keep first.")) replan.mutate();
-          }}
+          onReplan={() => setReplanOpen(true)}
           replanning={replan.isPending}
           autofilling={autofill.isPending}
           onReview={() => setReviewing(true)}
@@ -96,6 +97,14 @@ export function WeekPage() {
           slot={week.data.slots.find((s) => s.date === open.date && s.meal === open.meal)}
           onApply={apply}
           onClose={close}
+        />
+      )}
+
+      {replanOpen && (
+        <ReplanDialog
+          busy={replan.isPending}
+          onClose={closeReplan}
+          onReplan={(keep) => replan.mutate(keep, { onSuccess: closeReplan })}
         />
       )}
     </>
@@ -151,7 +160,7 @@ function WeekBody({
             className="pressable flex min-h-11 items-center gap-2 self-start rounded-full px-1 text-sm font-semibold text-primary"
           >
             <RotateCcw size={16} aria-hidden="true" />
-            {replanning ? "Clearing…" : "Replan week (keeps locked meals)"}
+            {replanning ? "Replanning…" : "Replan week"}
           </button>
         )}
         {week.days.map((day) => (

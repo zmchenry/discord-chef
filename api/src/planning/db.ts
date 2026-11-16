@@ -147,10 +147,13 @@ export function upsertSlotStatement(
     .bind(weekId, day, slot.meal, slot.kind, slot.recipeId, slot.source, slot.locked ? 1 : 0, userId, Date.now())
 }
 
-// Replan: clear every slot that isn't locked, so auto-fill can start over
-// around the ones the user chose to keep.
-export async function clearUnlockedSlots(db: D1Database, weekId: string): Promise<void> {
-  await db.prepare('DELETE FROM plan_slots WHERE week_id = ?1 AND locked = 0').bind(weekId).run()
+// Replan clears slots so auto-fill can start over. 'mine' clears only
+// unlocked auto picks (keeps everything the user chose and anything locked);
+// 'locked' clears every unlocked slot.
+export type ReplanKeep = 'mine' | 'locked'
+export async function clearForReplan(db: D1Database, weekId: string, keep: ReplanKeep): Promise<void> {
+  const autoOnly = keep === 'mine' ? " AND source = 'auto'" : ''
+  await db.prepare(`DELETE FROM plan_slots WHERE week_id = ?1 AND locked = 0${autoOnly}`).bind(weekId).run()
 }
 
 export async function deleteSlot(db: D1Database, weekId: string, date: string, meal: Meal): Promise<void> {
