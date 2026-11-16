@@ -84,6 +84,9 @@ Liz), installable on their Android phones.
   from staples you already have.
 
 - **Timezone**: America/New_York.
+- **Claude model**: Haiku 5.5 for link and voice import and price estimates (Zach's
+  call, 2026-11-16: cheap, and good enough). It's one constant, `MODEL` in
+  `api/src/linkImport/claude.ts`, if that ever changes.
 - **Notion cleanup**: all 127 audit items decided (recipe-cleanup artifact, 2026-11-16). The
   import applies those decisions; nothing is imported raw.
 - **Naming**: one set of rules in `shared/normalize.ts`, applied on every write and by the
