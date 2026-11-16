@@ -2,8 +2,7 @@ import { useState } from "react";
 
 import { MEALS, type Meal } from "../../../../shared/schema";
 import { addDays, sundayOf, todayIn, type SlotRecipe } from "../../../../shared/planningApi";
-import { Sheet } from "../../components/Sheet";
-import { Button } from "../../components/ui";
+import { Modal } from "../../components/Modal";
 import { cx } from "../../lib/cx";
 import { dayName, MARKER_LABEL, MEAL_LABEL, shortDate } from "./format";
 import { useSlotMutation, useWeek } from "./queries";
@@ -37,16 +36,26 @@ export function AddToWeekSheet({
     setDate(addDays(id, (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${weekId}T00:00:00Z`)) / 86_400_000));
   };
 
-  return (
-    <Sheet labelledBy="add-to-week-title" onClose={onClose}>
-      <div className="grid gap-4 overflow-y-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 lg:pt-5">
-        <div>
-          <h2 id="add-to-week-title" className="m-0 text-2xl">
-            Add to the week
-          </h2>
-          <p className="m-0 line-clamp-2 text-muted">{recipe.title}</p>
-        </div>
+  const already = current?.recipeId === recipe.id;
 
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Add to the week"
+      description={<span className="line-clamp-2">{recipe.title}</span>}
+      primary={{
+        label: already ? "Already there" : `Add to ${where}`,
+        disabled: already,
+        busy: write.isPending,
+        onClick: () =>
+          write.mutate([{ date, meal, set: { kind: "recipe", recipeId: recipe.id }, recipe }], {
+            onSuccess: () => onAdded(where, weekId),
+          }),
+      }}
+      secondary={{ label: "Cancel", onClick: onClose }}
+    >
+      <div className="grid gap-4">
         <div role="group" aria-label="Week" className="grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1">
           {[thisWeek, addDays(thisWeek, 7)].map((id, i) => (
             <button
@@ -99,19 +108,8 @@ export function AddToWeekSheet({
             : `${where[0]!.toUpperCase()}${where.slice(1)} is open.`}
         </p>
 
-        <Button
-          className="w-full"
-          disabled={write.isPending || current?.recipeId === recipe.id}
-          onClick={() =>
-            write.mutate([{ date, meal, set: { kind: "recipe", recipeId: recipe.id }, recipe }], {
-              onSuccess: () => onAdded(where, weekId),
-            })
-          }
-        >
-          {current?.recipeId === recipe.id ? "Already there" : write.isPending ? "Adding…" : `Add to ${where}`}
-        </Button>
         {write.isError && <p className="m-0 text-sm font-semibold text-danger">{write.error.message}</p>}
       </div>
-    </Sheet>
+    </Modal>
   );
 }

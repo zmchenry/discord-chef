@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { tagLabel } from "../../../shared/normalize";
+import { Modal } from "../components/Modal";
 import { OverflowMenu, type MenuItem } from "../components/OverflowMenu";
 import { Button, Card, Chip, LinkButton, StateMessage } from "../components/ui";
 import { AddToWeekSheet } from "../features/planning/AddToWeekSheet";
@@ -15,6 +16,7 @@ export function RecipeDetailPage() {
   const archive = useArchiveRecipe();
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [added, setAdded] = useState<{ where: string; weekId: string } | null>(null);
 
   if (recipe.isPending) return <StateMessage title="Loading…" />;
@@ -29,10 +31,7 @@ export function RecipeDetailPage() {
     );
 
   const r = recipe.data;
-  const onArchive = () => {
-    if (!window.confirm(`Delete "${r.title}"? It will disappear from your recipes.`)) return;
-    archive.mutate(r.id, { onSuccess: () => navigate("/recipes", { replace: true }) });
-  };
+  const onArchive = () => archive.mutate(r.id, { onSuccess: () => navigate("/recipes", { replace: true }) });
   const live = !r.archivedAt;
   const noIngredients = r.ingredients.length === 0;
   const speak = `/recipes/speak?recipe=${r.id}`;
@@ -47,7 +46,7 @@ export function RecipeDetailPage() {
     const url = r.sourceUrl;
     menu.push({ label: "Open the original", icon: ExternalLink, onSelect: () => window.open(url, "_blank", "noopener,noreferrer") });
   }
-  if (live) menu.push({ label: "Delete", icon: Trash2, destructive: true, onSelect: onArchive, disabled: archive.isPending });
+  if (live) menu.push({ label: "Delete", icon: Trash2, destructive: true, onSelect: () => setDeleting(true), disabled: archive.isPending });
 
   return (
     <article className="grid gap-4 px-4 pt-3">
@@ -139,6 +138,18 @@ export function RecipeDetailPage() {
           </ol>
         )}
       </Card>
+
+      <Modal
+        open={deleting}
+        size="sm"
+        onClose={() => setDeleting(false)}
+        title={`Delete “${r.title}”?`}
+        description="It will disappear from your recipes."
+        primary={{ label: "Delete", icon: Trash2, destructive: true, busy: archive.isPending, onClick: onArchive }}
+        secondary={{ label: "Cancel", onClick: () => setDeleting(false), disabled: archive.isPending }}
+      >
+        {archive.isError && <p className="m-0 text-sm font-semibold text-danger">{archive.error.message}</p>}
+      </Modal>
 
       {adding && (
         <AddToWeekSheet
