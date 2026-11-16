@@ -1,0 +1,88 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "chef",
+  "main": "api/src/index.ts",
+  "compatibility_date": "2026-11-01",
+
+  "observability": {
+    "enabled": true
+  },
+
+  "assets": {
+    "directory": "./web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+
+    // Without this, /api/* typed into the address bar never reaches the Worker.
+    // From compatibility_date 2025-04-01 onward, a request carrying
+    // "Sec-Fetch-Mode: navigate" is routed to static assets before the Worker
+    // script, so the SPA fallback would answer it with index.html and a 200.
+    // fetch() from client JS does not set that header, so the bug only shows up
+    // when a human opens an API URL directly or a webhook provider probes one.
+    // Listing /api/* here pins those paths to the Worker unconditionally.
+    //
+    // "/api" is listed separately: the glob /api/* does not match the bare
+    // /api, so that one path would fall through to the SPA and answer 200
+    // text/html while every other /api path returned JSON. Both are needed.
+    "run_worker_first": ["/api", "/api/*"]
+  },
+
+  "vars": {
+    "APP_NAME": "chef",
+
+    // Cloudflare Access protects the whole host chef.zmchenry.com (not one
+    // path, unlike fire-calculator), so every request the Worker sees has
+    // already passed Access. The Worker verifies the JWT anyway; see
+    // api/src/session.ts.
+    "TEAM_DOMAIN": "https://zmchenry.cloudflareaccess.com",
+
+    // The Access application's "Application Audience (AUD) Tag". Not
+    // sensitive.
+    "POLICY_AUD": "664516b3bb883541fb94d7bb48f451a66ba0c77cc989028c3ba8b4e967fdc8dd"
+
+    // ALLOWED_EMAILS is deliberately NOT a var: this repo is public, so the
+    // allowlist lives in a Worker secret (`npx wrangler secret put
+    // ALLOWED_EMAILS`, a comma-separated list) and, locally, in .dev.vars.
+    // Unset means nobody is allowed. See api/src/session.ts.
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chef",
+      // Created with `wrangler d1 create chef`. Local dev and tests do not
+      // use it: --local and miniflare key the database by binding, not id.
+      "database_id": "b06080e5-5419-41f3-821d-9e733a89e610",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Cron Triggers for notifications (phase 6: plan-the-week reminder, daily
+  // "what's cooking", list ready). Hourly so each job can check the household
+  // timezone itself. The scheduled() handler is a logging no-op until then.
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+
+  // Requires the zmchenry.com zone to be on Cloudflare; Cloudflare creates
+  // the DNS record and certificate on deploy (expect ~100s of unreachability
+  // the first time).
+  //
+  // Declaring "routes" turns the workers.dev hostname OFF by default, and it
+  // starts returning 404 with nothing said about it at deploy time.
+  // workers_dev stays on as a fallback for when DNS or the certificate is the
+  // thing that broke. Note that the workers.dev hostname is NOT behind the
+  // Access application on chef.zmchenry.com; the Worker's own JWT check is
+  // what keeps it closed (no Access JWT there, so every route but /api/health
+  // answers 401).
+  "routes": [
+    { "pattern": "chef.zmchenry.com", "custom_domain": true }
+  ],
+  "workers_dev": true,
+
+  // Off deliberately. Each deployed version otherwise gets its own public
+  // hostname, so the number of unauthenticated entrances grows with every
+  // deploy and none of them are covered by the Access application on
+  // chef.zmchenry.com. Turn back on only alongside account-level Access.
+  "preview_urls": false
+}

@@ -1,0 +1,35 @@
+{
+  "name": "chef",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "cd web && npm run dev",
+    "build": "cd web && npm run build",
+    "test": "vitest run && cd web && npm run test",
+    "test:api": "vitest run",
+    "typecheck": "wrangler types --env-file /dev/null && tsc -b --noEmit",
+    "lint": "eslint .",
+    "build:ci": "npm test && tsc -b --noEmit && npm run build",
+    "deploy:ci": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.9.0",
+    "hono": "^4.13.1",
+    "jose": "^6.2.8",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/node": "^24.6.0",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "globals": "^15.12.0",
+    "miniflare": "5.20260801.1-alpha",
+    "typescript": "~5.6.3",
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^4.1.10",
+    "wrangler": "4.157.0"
+  }
+}
