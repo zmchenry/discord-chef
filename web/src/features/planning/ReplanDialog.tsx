@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 
-import { Button } from "../../components/ui";
+import { Modal } from "../../components/Modal";
 
 // Asks how to replan: keep your own picks (default) or keep only locked meals.
 // Both clear, then auto-fill again.
@@ -13,51 +13,31 @@ export function ReplanDialog({
   onClose: () => void;
   busy: boolean;
 }) {
-  const panel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    panel.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-    };
-  }, [onClose]);
+  const [keep, setKeep] = useState<"mine" | "locked">("mine");
+  const go = (k: "mine" | "locked") => {
+    setKeep(k);
+    onReplan(k);
+  };
 
   return (
-    <div className="fixed inset-0 z-20 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-text/40" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={panel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="replan-title"
-        aria-describedby="replan-desc"
-        tabIndex={-1}
-        className="relative w-full max-w-sm rounded-card bg-bg p-5 shadow-card outline-none"
-      >
-        <h2 id="replan-title" className="m-0 font-display text-2xl">
-          Replan this week?
-        </h2>
-        <p id="replan-desc" className="mb-5 mt-2 text-muted">
-          Auto-fill picks new meals around the ones you keep, using your calendar and themes.
-        </p>
-        <div className="grid gap-2">
-          <Button onClick={() => onReplan("mine")} disabled={busy}>
-            {busy ? "Replanning…" : "Replan"}
-          </Button>
-          <p className="m-0 -mt-1 mb-1 text-center text-sm text-muted">Keeps everything you picked; redoes the auto picks.</p>
-          <Button variant="secondary" onClick={() => onReplan("locked")} disabled={busy}>
-            Replan, keep only locked
-          </Button>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </div>
+    <Modal
+      open
+      size="sm"
+      onClose={onClose}
+      title="Replan this week?"
+      description="Auto-fill picks new meals around the ones you keep, using your calendar and themes."
+      primary={{ label: "Replan", busy: busy && keep === "mine", onClick: () => go("mine") }}
+      secondary={{ label: "Cancel", onClick: onClose, disabled: busy }}
+      additional={[{ label: "Keep only locked", busy: busy && keep === "locked", onClick: () => go("locked") }]}
+    >
+      <ul className="m-0 grid gap-1.5 pl-5 text-sm text-muted">
+        <li>
+          <span className="font-semibold text-text">Replan</span> keeps everything you picked and redoes the auto picks.
+        </li>
+        <li>
+          <span className="font-semibold text-text">Keep only locked</span> redoes every meal you haven&apos;t locked.
+        </li>
+      </ul>
+    </Modal>
   );
 }
