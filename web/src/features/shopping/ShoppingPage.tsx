@@ -5,18 +5,20 @@ import { useSearchParams } from "react-router-dom";
 import type { ShoppingSort } from "../../../../shared/schema";
 import type { ShoppingListView, ShoppingWeekResponse } from "../../../../shared/shopping";
 import { sortItems } from "../../../../shared/shopping/sort";
+import { groupByStore } from "../../../../shared/shopping/store";
 import { addDays, defaultShoppingWeek, formatWeekRange } from "../../../../shared/shopping/week";
 import { OverflowMenu, type MenuItem } from "../../components/OverflowMenu";
 import { Button, Card, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
 import { AddItem } from "./AddItem";
-import { ItemList, type Row } from "./ItemList";
+import { AlsoAt, ItemList, type Row } from "./ItemList";
 import { SectionOrder, StorePicker } from "./StorePicker";
 import {
   useAddItem,
   useCheckItem,
   useDeleteItem,
   useGenerate,
+  usePinIngredient,
   useRankItem,
   useRefreshPrices,
   useShoppingWeek,
@@ -194,10 +196,31 @@ function WeekLists({
   const rank = useRankItem(week.weekId);
   const add = useAddItem(week.weekId);
   const remove = useDeleteItem(week.weekId);
-
+  const pin = usePinIngredient(week.weekId);
 
   const rows: Row[] = useMemo(() => list.items.map((i) => ({ ...i, checked: i.checkedAt !== null })), [list.items]);
-  const groups = useMemo(() => sortItems(rows, list.sort, store, list.learned), [rows, list.sort, store, list.learned]);
+  // Items pinned to another store go in "Also at <store>" groups at the end.
+  const split = useMemo(() => groupByStore(rows, list.storeId, week.stores.map((s) => s.id)), [rows, list.storeId, week.stores]);
+  const groups = useMemo(() => sortItems(split.main, list.sort, store, list.learned), [split.main, list.sort, store, list.learned]);
+  const also = split.also.flatMap(({ storeId, items }) => {
+    const at = week.stores.find((s) => s.id === storeId);
+    if (!at) return [];
+    // One flat list per store, in that store's aisle order (or A-Z / my order).
+    const mode = list.sort === "smart" ? "aisle" : list.sort;
+    const sorted = sortItems(items, mode, at).flatMap((g) => g.items);
+    const total = list.pinnedTotals.find((t) => t.storeId === storeId);
+    return [{ store: at, items: sorted, cents: total && total.priced > 0 ? total.cents : null }];
+  });
+  const rowProps = {
+    recipes: week.recipes,
+    stores: week.stores,
+    reorder: list.sort === "manual",
+    onCheck: (item: Row, checked: boolean) => item.id > 0 && check.mutate({ id: item.id, checked }),
+    onRemove: (item: Row) => item.id > 0 && remove.mutate(item.id),
+    onMove: (item: Row, manualRank: number) => rank.mutate({ id: item.id, manualRank, previous: item.manualRank }),
+    onPin: (item: Row, storeId: number | null) =>
+      item.ingredientId != null && pin.mutate({ ingredientId: item.ingredientId, storeId }),
+  };
   const done = rows.filter((r) => r.checked).length;
   const recipeCount = new Set(rows.flatMap((r) => r.recipeIds)).size;
   const learnedNothing = Object.keys(list.learned.sections).length === 0;
@@ -258,14 +281,12 @@ function WeekLists({
       {rows.length === 0 ? (
         <StateMessage title="Nothing to buy">Plan some recipes for this week, then tap Update. Or add items above.</StateMessage>
       ) : (
-        <ItemList
-          groups={groups}
-          recipes={week.recipes}
-          reorder={list.sort === "manual"}
-          onCheck={(item, checked) => item.id > 0 && check.mutate({ id: item.id, checked })}
-          onRemove={(item) => item.id > 0 && remove.mutate(item.id)}
-          onMove={(item, manualRank) => rank.mutate({ id: item.id, manualRank, previous: item.manualRank })}
-        />
+        <>
+          {split.main.length > 0 && <ItemList groups={groups} {...rowProps} />}
+          {also.map((a) => (
+            <AlsoAt key={a.store.id} store={a.store} cents={a.cents} items={a.items} {...rowProps} />
+          ))}
+        </>
       )}
     </div>
   );

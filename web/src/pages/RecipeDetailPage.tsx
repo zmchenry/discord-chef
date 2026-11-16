@@ -6,6 +6,7 @@ import { tagLabel } from "../../../shared/normalize";
 import { OverflowMenu, type MenuItem } from "../components/OverflowMenu";
 import { Button, Card, Chip, LinkButton, StateMessage } from "../components/ui";
 import { AddToWeekSheet } from "../features/planning/AddToWeekSheet";
+import { IngredientStorePin } from "../features/shopping/StorePin";
 import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useArchiveRecipe, useRecipe } from "../lib/queries";
 
@@ -116,9 +117,14 @@ export function RecipeDetailPage() {
         ) : (
           <ul className="m-0 list-none p-0">
             {r.ingredients.map((i) => (
-              <li key={i.id} className="border-b border-border py-2 last:border-b-0">
-                {i.rawText}
-                {i.optional && <span className="text-muted"> (optional)</span>}
+              <li key={i.id} className="flex items-center gap-2 border-b border-border py-2 last:border-b-0">
+                <span className="min-w-0 flex-1">
+                  {i.rawText}
+                  {i.optional && <span className="text-muted"> (optional)</span>}
+                </span>
+                {i.ingredientId !== null && (
+                  <IngredientStorePin ingredientId={i.ingredientId} name={i.ingredientName ?? i.rawText} editable={live} />
+                )}
               </li>
             ))}
           </ul>
