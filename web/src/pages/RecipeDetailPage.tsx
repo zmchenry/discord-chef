@@ -1,9 +1,12 @@
-import { ArrowLeft, Clock, ExternalLink, Mic, Pencil, Trash2, Users } from "lucide-react";
+import { ArrowLeft, CalendarPlus, Check, Clock, ExternalLink, Mic, Pencil, Trash2, Users } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { tagLabel } from "../../../shared/normalize";
+import { OverflowMenu, type MenuItem } from "../components/OverflowMenu";
 import { Button, Card, Chip, LinkButton, StateMessage } from "../components/ui";
-import { formatMinutes } from "../lib/recipeForm";
+import { AddToWeekSheet } from "../features/planning/AddToWeekSheet";
+import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useArchiveRecipe, useRecipe } from "../lib/queries";
 
 export function RecipeDetailPage() {
@@ -11,6 +14,8 @@ export function RecipeDetailPage() {
   const recipe = useRecipe(id);
   const archive = useArchiveRecipe();
   const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState<{ where: string; weekId: string } | null>(null);
 
   if (recipe.isPending) return <StateMessage title="Loading…" />;
   if (recipe.isError)
@@ -25,9 +30,24 @@ export function RecipeDetailPage() {
 
   const r = recipe.data;
   const onArchive = () => {
-    if (!window.confirm(`Archive "${r.title}"? It will disappear from the list.`)) return;
+    if (!window.confirm(`Delete "${r.title}"? It will disappear from your recipes.`)) return;
     archive.mutate(r.id, { onSuccess: () => navigate("/recipes", { replace: true }) });
   };
+  const live = !r.archivedAt;
+  const noIngredients = r.ingredients.length === 0;
+  const speak = `/recipes/speak?recipe=${r.id}`;
+
+  // One primary action: fill in a bare recipe by voice, otherwise put it on
+  // the week. Everything else is behind the more-actions button.
+  const menu: MenuItem[] = [];
+  if (live) menu.push({ label: "Edit", icon: Pencil, onSelect: () => navigate(`/recipes/${r.id}/edit`) });
+  if (live && noIngredients) menu.push({ label: "Add to this week", icon: CalendarPlus, onSelect: () => setAdding(true) });
+  if (live && !noIngredients) menu.push({ label: "Fill in by voice", icon: Mic, onSelect: () => navigate(speak) });
+  if (r.sourceUrl) {
+    const url = r.sourceUrl;
+    menu.push({ label: "Open the original", icon: ExternalLink, onSelect: () => window.open(url, "_blank", "noopener,noreferrer") });
+  }
+  if (live) menu.push({ label: "Delete", icon: Trash2, destructive: true, onSelect: onArchive, disabled: archive.isPending });
 
   return (
     <article className="grid gap-4 px-4 pt-3">
@@ -36,12 +56,8 @@ export function RecipeDetailPage() {
           <ArrowLeft size={20} aria-hidden="true" />
           <span>Recipes</span>
         </LinkButton>
-        <LinkButton to={`/recipes/${r.id}/edit`} variant="secondary">
-          <Pencil size={18} aria-hidden="true" />
-          Edit
-        </LinkButton>
+        {menu.length > 0 && <OverflowMenu items={menu} title={r.title} />}
       </div>
-
       <header className="grid gap-2">
         <h1 className="m-0 break-words text-3xl">
           {r.icon && <span aria-hidden="true">{r.icon} </span>}
@@ -71,20 +87,32 @@ export function RecipeDetailPage() {
             </Chip>
           ))}
         </div>
+        {live &&
+          (noIngredients ? (
+            <LinkButton to={speak} className="mt-1 justify-self-start">
+              <Mic size={20} aria-hidden="true" />
+              Add ingredients by voice
+            </LinkButton>
+          ) : (
+            <Button className="mt-1 justify-self-start" onClick={() => setAdding(true)}>
+              <CalendarPlus size={20} aria-hidden="true" />
+              Add to this week
+            </Button>
+          ))}
+        {added && (
+          <p className="m-0 flex flex-wrap items-center gap-x-2 text-sm font-semibold text-accent" role="status">
+            <Check size={16} aria-hidden="true" /> Added to {added.where}.
+            <Link to={`/week?week=${added.weekId}`} className="inline-flex min-h-11 items-center text-primary">
+              See the week
+            </Link>
+          </p>
+        )}
       </header>
 
       <Card className="p-4">
         <h2 className="m-0 mb-2 text-xl">Ingredients</h2>
         {r.ingredients.length === 0 ? (
-          <div className="grid gap-3">
-            <p className="m-0 text-muted">No ingredients yet.</p>
-            {!r.archivedAt && (
-              <LinkButton to={`/recipes/speak?recipe=${r.id}`} className="min-h-14 px-3">
-                <Mic size={22} aria-hidden="true" />
-                Add ingredients and steps by voice
-              </LinkButton>
-            )}
-          </div>
+          <p className="m-0 text-muted">No ingredients yet.</p>
         ) : (
           <ul className="m-0 list-none p-0">
             {r.ingredients.map((i) => (
@@ -112,33 +140,15 @@ export function RecipeDetailPage() {
         )}
       </Card>
 
-      {r.ingredients.length > 0 && !r.archivedAt && (
-        <Link
-          to={`/recipes/speak?recipe=${r.id}`}
-          className="inline-flex min-h-11 items-center gap-2 justify-self-start font-semibold text-primary"
-        >
-          <Mic size={18} aria-hidden="true" />
-          Add more by voice
-        </Link>
-      )}
-
-      {r.sourceUrl && (
-        <a
-          href={r.sourceUrl}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="inline-flex min-h-11 items-center gap-2 break-all font-semibold text-primary"
-        >
-          <ExternalLink size={18} aria-hidden="true" className="shrink-0" />
-          Original recipe
-        </a>
-      )}
-
-      {!r.archivedAt && (
-        <Button variant="danger" onClick={onArchive} disabled={archive.isPending} className="justify-self-start">
-          <Trash2 size={18} aria-hidden="true" />
-          Archive
-        </Button>
+      {adding && (
+        <AddToWeekSheet
+          recipe={{ id: r.id, title: r.title, icon: r.icon, totalMinutes: totalMinutes(r) }}
+          onClose={() => setAdding(false)}
+          onAdded={(where, weekId) => {
+            setAdding(false);
+            setAdded({ where, weekId });
+          }}
+        />
       )}
     </article>
   );

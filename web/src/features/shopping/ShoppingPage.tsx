@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, RefreshCw, Tag } from "lucide-react";
+import { ArrowDownUp, ChevronLeft, ChevronRight, RefreshCw, Split, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -6,6 +6,7 @@ import type { ShoppingSort } from "../../../../shared/schema";
 import type { ShoppingListView, ShoppingWeekResponse } from "../../../../shared/shopping";
 import { sortItems } from "../../../../shared/shopping/sort";
 import { addDays, defaultShoppingWeek, formatWeekRange } from "../../../../shared/shopping/week";
+import { OverflowMenu, type MenuItem } from "../../components/OverflowMenu";
 import { Button, Card, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
 import { AddItem } from "./AddItem";
@@ -77,7 +78,53 @@ export function ShoppingPage() {
     setParams(next, { replace: true });
   };
 
+  const prices = useRefreshPrices(weekId);
+  const [tripIndex, setTripIndex] = useState(0);
+  const [editingAisles, setEditingAisles] = useState(false);
+
   const hasList = !!week.data && week.data.lists.length > 0;
+  const list = hasList ? week.data.lists[Math.min(tripIndex, week.data.lists.length - 1)] : null;
+  const store = (list && week.data?.stores.find((s) => s.id === list.storeId)) ?? null;
+
+  // Checking items is the job here, so there is no primary button: list
+  // upkeep sits behind the more-actions button.
+  const menu: MenuItem[] = [];
+  if (hasList) {
+    menu.push({
+      label: generate.isPending ? "Rebuilding…" : "Rebuild list",
+      hint: "From the recipes planned this week",
+      icon: RefreshCw,
+      onSelect: () => generate.mutate(undefined),
+      disabled: generate.isPending,
+    });
+    menu.push({
+      label: "Two trips",
+      hint: "Fresh things for Thu–Sat on a midweek trip",
+      icon: Split,
+      checked: week.data.twoTrips,
+      disabled: generate.isPending,
+      onSelect: () => {
+        setTripIndex(0);
+        generate.mutate(!week.data.twoTrips);
+      },
+    });
+    menu.push({
+      label: "Estimate prices",
+      hint: "For store totals",
+      icon: Tag,
+      onSelect: () => prices.mutate(),
+      disabled: prices.isPending,
+    });
+    if (store)
+      menu.push({ label: `Change ${store.name}'s aisle order`, icon: ArrowDownUp, onSelect: () => setEditingAisles(true) });
+  }
+  const priceNote = prices.isPending
+    ? "Estimating prices…"
+    : prices.isError
+      ? "Couldn't estimate prices."
+      : prices.isSuccess && prices.data.estimated === 0
+        ? "No prices came back. Try again later."
+        : null;
 
   return (
     <>
@@ -93,12 +140,7 @@ export function ShoppingPage() {
         </div>
         <div className="flex items-center justify-between gap-3">
           <h1 className="m-0 text-3xl">Shopping list</h1>
-          {hasList && (
-            <Button variant="secondary" className="px-3 text-sm" onClick={() => generate.mutate(undefined)} disabled={generate.isPending}>
-              <RefreshCw size={16} aria-hidden="true" className={cx(generate.isPending && "animate-spin motion-reduce:animate-none")} />
-              {generate.isPending ? "Updating" : "Update"}
-            </Button>
-          )}
+          {menu.length > 0 && <OverflowMenu items={menu} title="Shopping list" />}
         </div>
       </header>
       <div className="px-4">
@@ -115,42 +157,44 @@ export function ShoppingPage() {
             {generate.isError && <p className="m-0 text-sm font-semibold text-danger">{generate.error.message}</p>}
           </Card>
         ) : (
-          <WeekLists week={week.data} />
+          <WeekLists
+            week={week.data}
+            list={list!}
+            store={store}
+            onTrip={setTripIndex}
+            editingAisles={editingAisles}
+            onEditAisles={setEditingAisles}
+            note={generate.isPending ? "Rebuilding the list…" : priceNote}
+          />
         )}
       </div>
     </>
   );
 }
 
-// Shown while the week has no prices at all, so the store totals can fill in.
-function EstimatePrices({ weekId }: { weekId: string }) {
-  const refresh = useRefreshPrices(weekId);
-  const nothing = refresh.isSuccess && refresh.data.estimated === 0;
-  return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
-      <Button variant="secondary" className="px-3 text-sm" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
-        <Tag size={16} aria-hidden="true" />
-        {refresh.isPending ? "Estimating…" : "Estimate prices"}
-      </Button>
-      <span className="text-sm text-muted" role="status">
-        {refresh.isError ? "Couldn't estimate prices." : nothing ? "No prices came back. Try again later." : "For store totals"}
-      </span>
-    </div>
-  );
-}
-
-function WeekLists({ week }: { week: ShoppingWeekResponse }) {
-  const [tripIndex, setTripIndex] = useState(0);
-  const [editingAisles, setEditingAisles] = useState(false);
-  const generate = useGenerate(week.weekId);
+function WeekLists({
+  week,
+  list,
+  store,
+  onTrip,
+  editingAisles,
+  onEditAisles,
+  note,
+}: {
+  week: ShoppingWeekResponse;
+  list: ShoppingListView;
+  store: ShoppingWeekResponse["stores"][number] | null;
+  onTrip: (i: number) => void;
+  editingAisles: boolean;
+  onEditAisles: (on: boolean) => void;
+  note: string | null;
+}) {
   const update = useUpdateList(week.weekId);
   const check = useCheckItem(week.weekId);
   const rank = useRankItem(week.weekId);
   const add = useAddItem(week.weekId);
   const remove = useDeleteItem(week.weekId);
 
-  const list: ShoppingListView = week.lists[Math.min(tripIndex, week.lists.length - 1)];
-  const store = week.stores.find((s) => s.id === list.storeId) ?? null;
 
   const rows: Row[] = useMemo(() => list.items.map((i) => ({ ...i, checked: i.checkedAt !== null })), [list.items]);
   const groups = useMemo(() => sortItems(rows, list.sort, store, list.learned), [rows, list.sort, store, list.learned]);
@@ -166,41 +210,15 @@ function WeekLists({ week }: { week: ShoppingWeekResponse }) {
             label="Trip"
             options={week.lists.map((l, i) => [String(i), `${l.trip === "midweek" ? "Midweek" : "Weekend"} · ${l.items.filter((x) => x.checkedAt === null).length}`])}
             value={String(week.lists.indexOf(list))}
-            onChange={(v) => setTripIndex(Number(v))}
+            onChange={(v) => onTrip(Number(v))}
           />
         )}
         <StorePicker stores={week.stores} list={list} onPick={(storeId) => update.mutate({ listId: list.id, storeId })} />
-        {list.totals.length === 0 && rows.some((r) => r.ingredientId !== null) && <EstimatePrices weekId={week.weekId} />}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={week.twoTrips}
-          disabled={generate.isPending}
-          onClick={() => {
-            setTripIndex(0);
-            generate.mutate(!week.twoTrips);
-          }}
-          className="flex min-h-11 items-center justify-between gap-3 px-1 text-left disabled:opacity-60"
-        >
-          <span className="grid leading-tight">
-            <span className="font-semibold">Two trips</span>
-            <span className="text-sm text-muted">Fresh things for Thu–Sat on a midweek trip</span>
-          </span>
-          <span
-            aria-hidden="true"
-            className={cx(
-              "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-              week.twoTrips ? "bg-accent" : "bg-surface-2 shadow-[inset_0_0_0_1.5px_var(--color-border)]",
-            )}
-          >
-            <span
-              className={cx(
-                "absolute left-0.5 top-0.5 size-6 rounded-full bg-surface shadow-card transition-transform",
-                week.twoTrips && "translate-x-5",
-              )}
-            />
-          </span>
-        </button>
+        {note && (
+          <p className="m-0 px-1 text-sm text-muted" role="status">
+            {note}
+          </p>
+        )}
       </div>
 
       <div className="grid gap-1.5">
@@ -231,14 +249,9 @@ function WeekLists({ week }: { week: ShoppingWeekResponse }) {
           <p className="m-0 px-1 text-sm text-muted">Aisle order for now. Smart learns your route after a couple of trips.</p>
         )}
         {list.sort === "manual" && <p className="m-0 px-1 text-sm text-muted">Drag the handles to put the list in your order.</p>}
-        {list.sort === "aisle" && store && !editingAisles && (
-          <button type="button" onClick={() => setEditingAisles(true)} className="min-h-11 justify-self-start px-1 text-sm font-semibold text-primary">
-            Change {store.name}'s aisle order
-          </button>
-        )}
       </div>
 
-      {editingAisles && store && <SectionOrder key={store.id} weekId={week.weekId} store={store} onDone={() => setEditingAisles(false)} />}
+      {editingAisles && store && <SectionOrder key={store.id} weekId={week.weekId} store={store} onDone={() => onEditAisles(false)} />}
 
       <AddItem onAdd={(item) => add.mutate({ listId: list.id, ...item })} />
 

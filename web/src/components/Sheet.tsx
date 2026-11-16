@@ -1,7 +1,10 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { cx } from "../lib/cx";
+
+// Open sheets, innermost last: Escape closes only the top one.
+const open: object[] = [];
 
 // A modal panel: a bottom sheet on phones and tablets, a centred dialog on
 // desktop (lg). Focus moves into it and back to where it came from on close;
@@ -22,25 +25,27 @@ export function Sheet({
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  // Whatever had focus when the sheet opened gets it back on close.
+  const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
 
   useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    panel.current?.focus();
+    const token = {};
+    open.push(token);
+    // A child (a menu) may already have focused something inside.
+    if (!panel.current?.contains(document.activeElement)) panel.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        close.current();
-      }
+      if (e.key === "Escape" && open[open.length - 1] === token) close.current();
     };
     document.addEventListener("keydown", onKey);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      open.splice(open.indexOf(token), 1);
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
       opener?.focus();
     };
-  }, []);
+  }, [opener]);
 
   return createPortal(
     <div className="fixed inset-0 z-30 lg:grid lg:place-items-center lg:p-6">

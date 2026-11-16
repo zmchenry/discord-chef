@@ -1,9 +1,10 @@
-import { ChevronRight, Clock, Link2, Mic, Plus, Search, Users } from "lucide-react";
+import { ChevronRight, Clock, Keyboard, Link2, Mic, Plus, Search, Users } from "lucide-react";
 import { useDeferredValue } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import type { RecipeSummary } from "../../../shared/schema";
-import { Card, Chip, LinkButton, PageHeader, StateMessage } from "../components/ui";
+import { ActionMenu } from "../components/OverflowMenu";
+import { Card, Chip, PageHeader, StateMessage } from "../components/ui";
 import { cx } from "../lib/cx";
 import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useRecipes } from "../lib/queries";
@@ -18,6 +19,7 @@ export function RecipesPage() {
   const tag = params.get("tag") ?? undefined;
   const deferredQ = useDeferredValue(q);
   const recipes = useRecipes({ q: deferredQ.trim() || undefined, tag });
+  const navigate = useNavigate();
 
   const update = (key: string, value: string | undefined) => {
     const next = new URLSearchParams(params);
@@ -31,23 +33,24 @@ export function RecipesPage() {
       <PageHeader
         title="Recipes"
         action={
-          <LinkButton to="/recipes/new" aria-label="New recipe" className="px-3">
-            <Plus size={20} aria-hidden="true" />
-            <span>New</span>
-          </LinkButton>
+          <ActionMenu
+            label="Add recipe"
+            trigger={
+              <>
+                <Plus size={20} aria-hidden="true" />
+                Add recipe
+              </>
+            }
+            triggerClassName="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary pl-3 pr-4 font-semibold text-on-primary"
+            items={[
+              { label: "Say it", hint: "Talk it through, or paste text", icon: Mic, onSelect: () => navigate("/recipes/speak") },
+              { label: "Paste a link", hint: "Import from a recipe page", icon: Link2, onSelect: () => navigate("/recipes/import") },
+              { label: "Type it", hint: "Fill in the form yourself", icon: Keyboard, onSelect: () => navigate("/recipes/new") },
+            ]}
+          />
         }
       />
       <div className="grid gap-3 px-4">
-        <div className="flex gap-2">
-          <LinkButton to="/recipes/speak" variant="secondary" aria-label="Add by voice or text" className="flex-1 px-3">
-            <Mic size={20} aria-hidden="true" />
-            <span>Voice or text</span>
-          </LinkButton>
-          <LinkButton to="/recipes/import" variant="secondary" aria-label="Import from link" className="flex-1 px-3">
-            <Link2 size={20} aria-hidden="true" />
-            <span>Import link</span>
-          </LinkButton>
-        </div>
         <div className="relative lg:max-w-md">
           <label htmlFor="recipe-search" className="sr-only">
             Search recipes

@@ -22,9 +22,12 @@ async function post<T>(path: string, body: unknown, parse: (x: unknown) => T): P
 
 // Refetch the family calendar, then every week view (constraints and clashes
 // come from it).
+export const calendarRefreshKey = ["calendar-refresh"];
+
 export function useCalendarRefresh() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: calendarRefreshKey,
     mutationFn: () => post("/calendar/refresh", {}, (x) => calendarRefreshResponseSchema.parse(x)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
   });
