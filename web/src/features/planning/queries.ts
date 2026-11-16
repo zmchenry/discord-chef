@@ -94,10 +94,21 @@ export function useSlotMutation(weekId: string) {
   });
 }
 
-export function useWeekAction(weekId: string, action: "autofill" | "finish" | "replan") {
+export function useWeekAction(weekId: string, action: "autofill" | "finish") {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => planningApi[action](weekId),
+    onSuccess: (week) => {
+      qc.setQueryData(planningKeys.week(weekId), week);
+      void qc.invalidateQueries({ queryKey: planningKeys.recommendations(weekId) });
+    },
+  });
+}
+
+export function useReplan(weekId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (keep: "mine" | "locked") => planningApi.replan(weekId, keep),
     onSuccess: (week) => {
       qc.setQueryData(planningKeys.week(weekId), week);
       void qc.invalidateQueries({ queryKey: planningKeys.recommendations(weekId) });

@@ -63,7 +63,12 @@ export function RecipesPage() {
           />
         </div>
 
-        <div role="group" aria-label="Filter by meal" className="flex flex-wrap gap-2">
+        {/* One line: tighter chips fit on a phone; narrower screens scroll sideways. */}
+        <div
+          role="group"
+          aria-label="Filter by meal"
+          className="-mx-4 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {[undefined, ...MEAL_FILTERS].map((t) => {
             const active = tag === t;
             return (
@@ -73,7 +78,7 @@ export function RecipesPage() {
                 aria-pressed={active}
                 onClick={() => update("tag", t)}
                 className={cx(
-                  "pressable min-h-11 rounded-full px-4 text-sm font-bold",
+                  "pressable min-h-11 shrink-0 whitespace-nowrap rounded-full px-3.5 text-sm font-bold",
                   active ? "bg-primary text-on-primary" : "bg-surface-2 text-text",
                 )}
               >

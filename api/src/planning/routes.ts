@@ -22,7 +22,7 @@ import { mealSchema, type ErrorResponse } from '../../../shared/schema'
 import { requireSession, type AppEnv } from '../session'
 import { openClashes } from '../calendarRefresh/clashes'
 import { ICAL_KEY, setCalendarUrl, weekConstraints } from './calendar'
-import { clearUnlockedSlots,
+import { clearForReplan, type ReplanKeep,
   deleteSlot,
   ensureWeek,
   getHousehold,
@@ -154,10 +154,9 @@ planning.delete('/weeks/:start/slots/:date/:meal', async (c) => {
   return c.json(await weekView(c.env, weekId))
 })
 
-planning.post('/weeks/:start/autofill', jsonPost, async (c) => {
-  const weekId = weekParam(c)
-  if (!weekId) return notFound(c)
-  const w = await loadWeek(c.env, weekId)
+// Fill every empty, unlocked slot with the engine's picks (source 'auto').
+async function autofillWeek(env: Env, weekId: string, userId: string): Promise<void> {
+  const w = await loadWeek(env, weekId)
   const filled = autoFill({ days: w.days, week: w.planned, candidates: w.candidates, seed: weekId })
   // Only write into slots that are still empty, whatever the engine returns.
   const isEmpty = (date: string, meal: string) => !w.slots.some((s) => s.date === date && s.meal === meal)
@@ -165,7 +164,7 @@ planning.post('/weeks/:start/autofill', jsonPost, async (c) => {
     .filter((s) => s.source === 'auto' && isEmpty(s.date, s.meal))
     .filter((s) => s.kind !== 'recipe' || s.recipeId)
     .map((s) =>
-      upsertSlotStatement(c.env.DB, weekId, c.var.session!.userId, {
+      upsertSlotStatement(env.DB, weekId, userId, {
         date: s.date,
         meal: s.meal,
         kind: s.kind,
@@ -174,15 +173,25 @@ planning.post('/weeks/:start/autofill', jsonPost, async (c) => {
         locked: false,
       }),
     )
-  if (writes.length) await c.env.DB.batch(writes)
+  if (writes.length) await env.DB.batch(writes)
+}
+
+planning.post('/weeks/:start/autofill', jsonPost, async (c) => {
+  const weekId = weekParam(c)
+  if (!weekId) return notFound(c)
+  await autofillWeek(c.env, weekId, c.var.session!.userId)
   return c.json(await weekView(c.env, weekId))
 })
 
 planning.post('/weeks/:start/replan', jsonPost, async (c) => {
   const weekId = weekParam(c)
   if (!weekId) return notFound(c)
+  // Body {keep: 'mine' | 'locked'}; anything else means 'mine'.
+  const body = (await c.req.json().catch(() => ({}))) as { keep?: unknown }
+  const keep: ReplanKeep = body?.keep === 'locked' ? 'locked' : 'mine'
   await ensureWeek(c.env.DB, weekId)
-  await clearUnlockedSlots(c.env.DB, weekId)
+  await clearForReplan(c.env.DB, weekId, keep)
+  await autofillWeek(c.env, weekId, c.var.session!.userId)
   return c.json(await weekView(c.env, weekId))
 })
 
