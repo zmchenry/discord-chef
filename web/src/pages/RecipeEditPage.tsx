@@ -1,24 +1,30 @@
 import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import type { Recipe } from "../../../shared/schema";
 import { Button, LinkButton, StateMessage, TextAreaField, TextField } from "../components/ui";
 import { emptyForm, formToInput, recipeToForm, validateForm, type FormErrors, type RecipeFormValues } from "../lib/recipeForm";
 import { ApiError } from "../lib/api";
 import { useRecipe, useSaveRecipe } from "../lib/queries";
+import { ImportedNotice } from "../features/linkImport/ImportedNotice";
+import { draftToForm, importedDraftFrom, withDraftExtras, type ImportedDraft } from "../features/linkImport/draft";
 
 // /recipes/new and /recipes/:id/edit.
 export function RecipeEditPage() {
   const { id } = useParams();
   const existing = useRecipe(id);
+  const imported = importedDraftFrom(useLocation().state);
   if (id && existing.isPending) return <StateMessage title="Loading…" />;
   if (id && existing.isError) return <StateMessage title="Couldn't load this recipe">{existing.error.message}</StateMessage>;
-  return <RecipeForm key={id ?? "new"} base={existing.data} />;
+  return <RecipeForm key={id ?? "new"} base={existing.data} imported={id ? undefined : imported} />;
 }
 
-export function RecipeForm({ base }: { base?: Recipe }) {
-  const [values, setValues] = useState<RecipeFormValues>(() => (base ? recipeToForm(base) : emptyForm));
+// `imported`: a draft from the link import, prefilled and carried through.
+export function RecipeForm({ base, imported }: { base?: Recipe; imported?: ImportedDraft }) {
+  const [values, setValues] = useState<RecipeFormValues>(() =>
+    base ? recipeToForm(base) : imported ? draftToForm(imported.draft) : emptyForm,
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const save = useSaveRecipe(base?.id);
   const navigate = useNavigate();
@@ -35,7 +41,8 @@ export function RecipeForm({ base }: { base?: Recipe }) {
     const found = validateForm(values);
     setErrors(found);
     if (Object.keys(found).length) return;
-    save.mutate(formToInput(values, base), {
+    const input = formToInput(values, base);
+    save.mutate(imported ? withDraftExtras(input, imported.draft) : input, {
       onSuccess: (recipe) => navigate(`/recipes/${recipe.id}`, { replace: true }),
     });
   };
@@ -52,6 +59,8 @@ export function RecipeForm({ base }: { base?: Recipe }) {
           {base ? "Edit recipe" : "New recipe"}
         </h1>
       </div>
+
+      {imported && <ImportedNotice imported={imported} />}
 
       <TextField label="Title" required autoComplete="off" {...bind("title")} />
       <TextField label="Tags" hint="Comma-separated, e.g. dinner, fast" autoComplete="off" {...bind("tags")} />

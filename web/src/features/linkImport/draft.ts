@@ -1,0 +1,45 @@
+import type { ImportUrlResponse } from "../../../../shared/linkImport";
+import type { RecipeInput } from "../../../../shared/schema";
+import type { RecipeFormValues } from "../../lib/recipeForm";
+
+// What the import page hands to /recipes/new in router state.
+export type ImportedDraft = ImportUrlResponse;
+
+export function importedDraftFrom(state: unknown): ImportedDraft | undefined {
+  const d = (state as { imported?: ImportedDraft } | null)?.imported;
+  return d && typeof d.draft?.title === "string" ? d : undefined;
+}
+
+export function draftToForm(d: RecipeInput): RecipeFormValues {
+  return {
+    title: d.title,
+    tags: (d.tags ?? []).join(", "),
+    servings: d.servings?.toString() ?? "",
+    prepMinutes: d.prepMinutes?.toString() ?? "",
+    cookMinutes: d.cookMinutes?.toString() ?? "",
+    ingredients: (d.ingredients ?? []).map((i) => i.rawText).join("\n"),
+    instructions: (d.instructions ?? []).join("\n"),
+    sourceUrl: d.sourceUrl ?? "",
+  };
+}
+
+// The form only edits some fields. Carry the rest over from the draft
+// (description, image), and keep the parsed row for every ingredient line
+// the user left unchanged.
+export function withDraftExtras(input: RecipeInput, d: RecipeInput): RecipeInput {
+  const rows = new Map((d.ingredients ?? []).map((i) => [i.rawText, i]));
+  return {
+    ...input,
+    description: input.description ?? d.description ?? null,
+    imageUrl: input.imageUrl ?? d.imageUrl ?? null,
+    ingredients: (input.ingredients ?? []).map((i) => rows.get(i.rawText) ?? i),
+  };
+}
+
+// The share target sends ?url=, or (Android Chrome) the link inside ?text=.
+export function sharedUrl(params: URLSearchParams): string {
+  const direct = params.get("url")?.trim();
+  if (direct) return direct;
+  const inText = (params.get("text") ?? "").match(/https?:\/\/[^\s<>"']+/i)?.[0];
+  return inText ? inText.replace(/[).,;!?]+$/, "") : "";
+}

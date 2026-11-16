@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
+import { ImportPage } from "./features/linkImport/ImportPage";
 import { MorePage } from "./pages/MorePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ShopPage, WeekPage } from "./pages/Placeholder";
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="week" element={<WeekPage />} />
         <Route path="recipes" element={<RecipesPage />} />
         <Route path="recipes/new" element={<RecipeEditPage />} />
+        <Route path="recipes/import" element={<ImportPage />} />
         <Route path="recipes/:id" element={<RecipeDetailPage />} />
         <Route path="recipes/:id/edit" element={<RecipeEditPage />} />
         <Route path="shop" element={<ShopPage />} />

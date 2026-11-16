@@ -1,4 +1,4 @@
-import { ChevronRight, Clock, Plus, Search, Users } from "lucide-react";
+import { ChevronRight, Clock, Link2, Plus, Search, Users } from "lucide-react";
 import { useDeferredValue } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -31,10 +31,16 @@ export function RecipesPage() {
       <PageHeader
         title="Recipes"
         action={
-          <LinkButton to="/recipes/new" aria-label="New recipe" className="px-3">
-            <Plus size={20} aria-hidden="true" />
-            <span>New</span>
-          </LinkButton>
+          <div className="flex gap-2">
+            <LinkButton to="/recipes/import" variant="secondary" aria-label="Import from link" className="px-3">
+              <Link2 size={20} aria-hidden="true" />
+              <span>Import</span>
+            </LinkButton>
+            <LinkButton to="/recipes/new" aria-label="New recipe" className="px-3">
+              <Plus size={20} aria-hidden="true" />
+              <span>New</span>
+            </LinkButton>
+          </div>
         }
       />
       <div className="grid gap-3 px-4">
