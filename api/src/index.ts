@@ -24,6 +24,7 @@ import {
   searchIngredients,
   updateRecipe,
 } from './db'
+import { linkImportRoutes } from './linkImport/routes'
 import {
   localSessionProvider,
   makeAccessSessionProvider,
@@ -161,6 +162,8 @@ app.delete('/recipes/:id', requireSession, async (c) => {
   const found = await archiveRecipe(c.env.DB, c.req.param('id'))
   return found ? c.body(null, 204) : notFound(c)
 })
+
+app.route('/', linkImportRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 
