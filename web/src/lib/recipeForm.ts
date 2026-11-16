@@ -1,5 +1,5 @@
 import type { Recipe, RecipeIngredientInput, RecipeInput } from "../../../shared/schema";
-import { normaliseTags } from "../../../shared/normalize";
+import { normalizeTags } from "../../../shared/normalize";
 
 // The recipe form edits a flat, all-strings shape. These two pure functions
 // convert between it and the API types, and are where the form's rules live
@@ -105,7 +105,7 @@ export function formToInput(v: RecipeFormValues, base?: Recipe): RecipeInput {
     cookMinutes: int(v.cookMinutes),
     instructions: lines(v.instructions),
     notes: base?.notes ?? null,
-    tags: normaliseTags(v.tags.split(",")),
+    tags: normalizeTags(v.tags.split(",")),
     ingredients,
     notionPageId: base?.notionPageId ?? null,
   };

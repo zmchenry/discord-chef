@@ -71,14 +71,14 @@ describe('recipes CRUD', () => {
       env,
       devRequest('PUT', `/api/recipes/${created.id}`, {
         ...pancakes,
-        title: 'Buttermilk pancakes',
+        title: 'buttermilk pancakes',
         tags: ['breakfast'],
         ingredients: [{ rawText: 'buttermilk' }, { rawText: 'flour' }],
       }),
     )
     expect(put.status).toBe(200)
     const updated = (await put.json()) as Recipe
-    expect(updated.title).toBe('Buttermilk pancakes')
+    expect(updated.title).toBe('Buttermilk Pancakes')
     expect(updated.tags).toEqual(['breakfast'])
     expect(updated.ingredients.map((i) => i.ingredientName)).toEqual(['buttermilk', 'flour'])
     expect(updated.createdAt).toBe(created.createdAt)
@@ -106,13 +106,21 @@ describe('recipes CRUD', () => {
     await create({ title: 'Taco salad', description: 'uses leftover taco meat', tags: ['lunch'] })
     await create({ title: '100% rye', tags: ['bread'] })
 
-    expect((await list('?q=taco')).map((r) => r.title)).toEqual(['Chicken tacos', 'Taco salad'])
-    expect((await list('?q=LEFTOVER')).map((r) => r.title)).toEqual(['Taco salad'])
-    expect((await list('?tag=Dinner')).map((r) => r.title)).toEqual(['Chicken tacos'])
-    expect((await list('?q=taco&tag=lunch')).map((r) => r.title)).toEqual(['Taco salad'])
+    expect((await list('?q=taco')).map((r) => r.title)).toEqual(['Chicken Tacos', 'Taco Salad'])
+    expect((await list('?q=LEFTOVER')).map((r) => r.title)).toEqual(['Taco Salad'])
+    expect((await list('?tag=Dinner')).map((r) => r.title)).toEqual(['Chicken Tacos'])
+    expect((await list('?q=taco&tag=lunch')).map((r) => r.title)).toEqual(['Taco Salad'])
     // LIKE wildcards in q are literal.
-    expect((await list('?q=%25')).map((r) => r.title)).toEqual(['100% rye'])
+    expect((await list('?q=%25')).map((r) => r.title)).toEqual(['100% Rye'])
     expect((await list('?q=_')).map((r) => r.title)).toEqual([])
+  })
+
+  it('normalises the title and 409s a duplicate with the existing id', async () => {
+    const first = await create({ title: '  bacon &amp; lettuce sandwiches ' })
+    expect(first.title).toBe('Bacon and Lettuce Sandwiches')
+    const res = await call(env, devRequest('POST', '/api/recipes', { title: 'BACON and LETTUCE sandwiches.' }))
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: 'conflict', existingId: first.id })
   })
 
   it('400s an invalid body with zod issues', async () => {

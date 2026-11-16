@@ -24,6 +24,8 @@ export class ApiError extends Error {
     readonly status: number,
     message: string,
     readonly issues?: unknown[],
+    // Set on a 409: the recipe that already has this title.
+    readonly existingId?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -44,16 +46,18 @@ async function request<T extends z.ZodTypeAny>(
   if (!res.ok) {
     let message = `${res.status} ${res.statusText}`;
     let issues: unknown[] | undefined;
+    let existingId: string | undefined;
     try {
       const parsed = errorResponseSchema.safeParse(await res.json());
       if (parsed.success) {
         message = parsed.data.error;
         issues = parsed.data.issues;
+        existingId = parsed.data.existingId;
       }
     } catch {
       // Not JSON (e.g. an Access login page). Keep the status text.
     }
-    throw new ApiError(res.status, message, issues);
+    throw new ApiError(res.status, message, issues, existingId);
   }
   if (schema === null || res.status === 204) return undefined as z.infer<T>;
   return schema.parse(await res.json());

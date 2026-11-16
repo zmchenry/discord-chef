@@ -1,10 +1,10 @@
-import { normaliseIngredientName, normaliseTags } from '../../shared/normalize'
+import { cleanText, normalizeTag } from '../../shared/normalize'
+import type { NormalizedRecipeInput } from '../../shared/recipeInput'
 import type {
   Ingredient,
   Me,
   Recipe,
   RecipeIngredient,
-  RecipeInputParsed,
   RecipeListQuery,
   RecipeSummary,
   Store,
@@ -167,7 +167,7 @@ export async function listRecipes(db: D1Database, query: RecipeListQuery = {}): 
     where.push(`(r.title LIKE ${p} ESCAPE '\\' OR r.description LIKE ${p} ESCAPE '\\')`)
   }
   if (query.tag) {
-    params.push(normaliseTags([query.tag])[0] ?? '')
+    params.push(normalizeTag(query.tag))
     where.push(`EXISTS (SELECT 1 FROM recipe_tags t WHERE t.recipe_id = r.id AND t.tag = ?${params.length})`)
   }
   const sql = `SELECT ${SUMMARY_COLUMNS} FROM recipes r WHERE ${where.join(' AND ')}
@@ -237,29 +237,30 @@ export async function getRecipe(db: D1Database, id: string): Promise<Recipe | nu
 // batch as one transaction, so a failure anywhere leaves the recipe exactly
 // as it was.
 //
+// `input` has been through normalizeRecipeInput (shared/recipeInput.ts), so
+// tags and ingredient names are already canonical.
+//
 // Ingredient matching happens in SQL, not in a read-then-write from the
 // Worker, so it is atomic with the rest of the batch:
-//   1. For each distinct normalised name, insert a catalog row unless the
+//   1. For each distinct canonical name, insert a catalog row unless the
 //      name already exists (ON CONFLICT on the UNIQUE name) or is already
 //      some ingredient's alias (the WHERE NOT EXISTS).
 //   2. Each recipe_ingredients row looks its ingredient_id up by name first,
-//      then by alias.
-function replaceChildrenStatements(db: D1Database, recipeId: string, input: RecipeInputParsed, now: number) {
+//      then by alias. A line with no name ('') matches nothing and stays
+//      unlinked.
+function replaceChildrenStatements(db: D1Database, recipeId: string, input: NormalizedRecipeInput, now: number) {
   const stmts: D1PreparedStatement[] = [
     db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?1').bind(recipeId),
     db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?1').bind(recipeId),
   ]
 
-  for (const tag of normaliseTags(input.tags)) {
+  for (const tag of input.tags) {
     stmts.push(db.prepare('INSERT INTO recipe_tags (recipe_id, tag) VALUES (?1, ?2)').bind(recipeId, tag))
   }
 
-  const lines = input.ingredients.map((line) => ({
-    ...line,
-    canonical: normaliseIngredientName(line.name ?? line.rawText),
-  }))
+  const lines = input.ingredients
 
-  for (const name of new Set(lines.map((l) => l.canonical))) {
+  for (const name of new Set(lines.map((l) => l.name).filter(Boolean))) {
     stmts.push(
       db
         .prepare(
@@ -287,19 +288,34 @@ function replaceChildrenStatements(db: D1Database, recipeId: string, input: Reci
              ),
              ?5, ?6, ?7, ?8)`,
         )
-        .bind(recipeId, position, line.rawText, line.canonical, line.quantity, line.unit, line.note, line.optional ? 1 : 0),
+        .bind(recipeId, position, line.rawText, line.name, line.quantity, line.unit, line.note, line.optional ? 1 : 0),
     )
   })
 
   return stmts
 }
 
+// Titles are unique, ignoring case, among non-archived recipes (also enforced
+// by an index in migration 0002). Returns the id holding `title`, if any.
+export async function findActiveRecipeByTitle(db: D1Database, title: string, exceptId = ''): Promise<string | null> {
+  const row = await db
+    .prepare('SELECT id FROM recipes WHERE lower(title) = lower(?1) AND archived_at IS NULL AND id != ?2')
+    .bind(title, exceptId)
+    .first<{ id: string }>()
+  return row?.id ?? null
+}
+
+export type SaveResult = Recipe | { conflict: string } | null
+
+// Returns { conflict: existingId } when another active recipe has the title.
 export async function createRecipe(
   db: D1Database,
   userId: string,
-  input: RecipeInputParsed,
+  input: NormalizedRecipeInput,
   now = Date.now(),
-): Promise<Recipe> {
+): Promise<Recipe | { conflict: string }> {
+  const existing = await findActiveRecipeByTitle(db, input.title)
+  if (existing) return { conflict: existing }
   const id = crypto.randomUUID()
   await db.batch([
     db
@@ -332,16 +348,18 @@ export async function createRecipe(
   return created
 }
 
-// Full replace. Returns null when no recipe has this id. Updating an archived
-// recipe is allowed and leaves it archived.
+// Full replace. Returns null when no recipe has this id, and { conflict }
+// as createRecipe does. Updating an archived recipe leaves it archived.
 export async function updateRecipe(
   db: D1Database,
   id: string,
-  input: RecipeInputParsed,
+  input: NormalizedRecipeInput,
   now = Date.now(),
-): Promise<Recipe | null> {
+): Promise<SaveResult> {
   const exists = await db.prepare('SELECT 1 AS x FROM recipes WHERE id = ?1').bind(id).first()
   if (!exists) return null
+  const existing = await findActiveRecipeByTitle(db, input.title, id)
+  if (existing) return { conflict: existing }
   await db.batch([
     db
       .prepare(
@@ -387,7 +405,7 @@ export async function archiveRecipe(db: D1Database, id: string, now = Date.now()
 // Autocomplete: names (or aliases) containing q, prefix matches first. With
 // no q, the first `limit` names alphabetically.
 export async function searchIngredients(db: D1Database, q: string | undefined, limit = 20): Promise<Ingredient[]> {
-  const norm = q ? normaliseIngredientName(q) : ''
+  const norm = q ? cleanText(q).toLowerCase() : ''
   if (!norm) {
     const { results } = await db
       .prepare('SELECT * FROM ingredients ORDER BY name LIMIT ?1')

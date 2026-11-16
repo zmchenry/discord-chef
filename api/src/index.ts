@@ -12,6 +12,7 @@ import {
   type RecipeListResponse,
   type StoreListResponse,
 } from '../../shared/schema'
+import { normalizeRecipeInput } from '../../shared/recipeInput'
 import {
   archiveRecipe,
   createRecipe,
@@ -72,6 +73,18 @@ const notFound = (c: Context) => {
   return c.json(body, 404)
 }
 
+const conflict = (c: Context, existingId: string) => {
+  const body: ErrorResponse = { error: 'conflict', existingId }
+  return c.json(body, 409)
+}
+
+// The naming rules (shared/normalize.ts) run on every recipe write. A title
+// that normalises to nothing ("...") is a 400.
+const normalizedRecipe = (c: Context<AppEnv>, body: Parameters<typeof normalizeRecipeInput>[0]) => {
+  const input = normalizeRecipeInput(body)
+  return input.title ? input : invalid(c, [{ path: ['title'], message: 'title is empty after normalisation' }])
+}
+
 app.get('/health', (c) => {
   const body: HealthResponse = { status: 'ok', now: new Date().toISOString() }
   return c.json(body)
@@ -125,14 +138,21 @@ app.get('/recipes/:id', requireSession, async (c) => {
   return recipe ? c.json(recipe) : notFound(c)
 })
 
+// 409 { error: 'conflict', existingId } when another active recipe already
+// has the (normalised) title.
 app.post('/recipes', requireSession, validJson(recipeInputSchema), async (c) => {
-  const recipe = await createRecipe(c.env.DB, c.var.session!.userId, c.req.valid('json'))
-  return c.json(recipe, 201)
+  const input = normalizedRecipe(c, c.req.valid('json'))
+  if (input instanceof Response) return input
+  const result = await createRecipe(c.env.DB, c.var.session!.userId, input)
+  return 'conflict' in result ? conflict(c, result.conflict) : c.json(result, 201)
 })
 
 app.put('/recipes/:id', requireSession, validJson(recipeInputSchema), async (c) => {
-  const recipe = await updateRecipe(c.env.DB, c.req.param('id'), c.req.valid('json'))
-  return recipe ? c.json(recipe) : notFound(c)
+  const input = normalizedRecipe(c, c.req.valid('json'))
+  if (input instanceof Response) return input
+  const result = await updateRecipe(c.env.DB, c.req.param('id'), input)
+  if (!result) return notFound(c)
+  return 'conflict' in result ? conflict(c, result.conflict) : c.json(result)
 })
 
 // Soft archive: the row stays (old plans reference it) and drops out of the

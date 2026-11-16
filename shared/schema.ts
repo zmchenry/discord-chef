@@ -51,9 +51,9 @@ export type ShoppingItemSource = z.infer<typeof shoppingItemSourceSchema>
 export const notificationKindSchema = z.enum(['plan_week', 'daily_cooking', 'list_ready'])
 export type NotificationKind = z.infer<typeof notificationKindSchema>
 
-// Tags are lowercase and trimmed (see shared/normalize.ts). The Worker also
-// collapses whitespace and dedupes before storing.
-export const tagSchema = z.string().trim().toLowerCase().min(1).max(40)
+// Any string is accepted; the Worker applies normalizeTag (shared/normalize.ts:
+// lowercase, hyphens, [a-z0-9-] only) and dedupes before storing.
+export const tagSchema = z.string().trim().min(1).max(40)
 
 // ---------------------------------------------------------------------------
 // Generic responses
@@ -65,10 +65,12 @@ export const healthResponseSchema = z.object({
 export type HealthResponse = z.infer<typeof healthResponseSchema>
 
 // The body of every non-2xx /api response. `issues` is present on 400s from
-// request validation (zod issues, passed through as-is).
+// request validation (zod issues, passed through as-is). `existingId` is
+// present on a 409 'conflict': the recipe that already has that title.
 export const errorResponseSchema = z.object({
   error: z.string(),
   issues: z.array(z.unknown()).optional(),
+  existingId: z.string().optional(),
 })
 export type ErrorResponse = z.infer<typeof errorResponseSchema>
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { normaliseIngredientName, normaliseTags } from '../../shared/normalize'
-import { recipeInputSchema, type Ingredient, type RecipeInput } from '../../shared/schema'
+import { normalizeRecipeInput } from '../../shared/recipeInput'
+import { recipeInputSchema, type Ingredient, type Recipe, type RecipeInput } from '../../shared/schema'
 import { createRecipe, ensureUser, getRecipe, searchIngredients } from '../src/db'
 import { call, devEnv, devRequest } from './helpers'
 import { createTestDb, type TestDb } from './setup/testDb'
@@ -17,23 +17,15 @@ afterEach(async () => {
   await testDb.dispose()
 })
 
-const make = (input: RecipeInput) => createRecipe(testDb.db, 'zach@example.com', recipeInputSchema.parse(input))
+async function make(input: RecipeInput): Promise<Recipe> {
+  const result = await createRecipe(testDb.db, 'zach@example.com', normalizeRecipeInput(recipeInputSchema.parse(input)))
+  if ('conflict' in result) throw new Error('unexpected title conflict')
+  return result
+}
 const catalog = async () =>
   (await testDb.db.prepare('SELECT name FROM ingredients ORDER BY name').all<{ name: string }>()).results.map(
     (r) => r.name,
   )
-
-describe('normaliseIngredientName', () => {
-  it('trims, lowercases and collapses whitespace', () => {
-    expect(normaliseIngredientName('  Red   Bell\tPepper \n')).toBe('red bell pepper')
-  })
-  it('leaves an already-canonical name alone', () => {
-    expect(normaliseIngredientName('cilantro')).toBe('cilantro')
-  })
-  it('normaliseTags dedupes after normalising and drops empties', () => {
-    expect(normaliseTags(['Dinner', ' dinner', 'Fast  Food', 'fast food', '  '])).toEqual(['dinner', 'fast food'])
-  })
-})
 
 describe('ingredient matching', () => {
   it('dedupes across spelling variants and across recipes', async () => {
@@ -57,11 +49,11 @@ describe('ingredient matching', () => {
 
   it('writes nothing when any statement in the recipe batch fails', async () => {
     // Bypass zod to hit a CHECK constraint mid-batch (quantity must be > 0).
-    const bad = recipeInputSchema.parse({
+    const bad = normalizeRecipeInput(recipeInputSchema.parse({
       title: 'Broken',
       tags: ['dinner'],
       ingredients: [{ rawText: 'brand new thing' }, { rawText: 'salt' }],
-    })
+    }))
     bad.ingredients[1].quantity = -1
     await expect(createRecipe(testDb.db, 'zach@example.com', bad)).rejects.toThrow()
     expect(await catalog()).toEqual([])

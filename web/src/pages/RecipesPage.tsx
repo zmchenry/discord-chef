@@ -8,7 +8,9 @@ import { cx } from "../lib/cx";
 import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useRecipes } from "../lib/queries";
 
-const MEAL_FILTERS = ["breakfast", "lunch", "dinner"] as const;
+import { MEAL_TAGS, tagLabel } from "../../../shared/normalize";
+
+const MEAL_FILTERS = MEAL_TAGS;
 
 export function RecipesPage() {
   const [params, setParams] = useSearchParams();
@@ -61,11 +63,11 @@ export function RecipesPage() {
                 aria-pressed={active}
                 onClick={() => update("tag", t)}
                 className={cx(
-                  "pressable min-h-11 rounded-full px-4 text-sm font-bold capitalize",
+                  "pressable min-h-11 rounded-full px-4 text-sm font-bold",
                   active ? "bg-primary text-on-primary" : "bg-surface-2 text-text",
                 )}
               >
-                {t ?? "All"}
+                {t ? tagLabel(t) : "All"}
               </button>
             );
           })}
@@ -127,8 +129,8 @@ export function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
           {recipe.tags.length > 0 && (
             <span className="flex flex-wrap gap-1.5">
               {recipe.tags.map((t) => (
-                <Chip key={t} className="py-0.5 text-xs capitalize">
-                  {t}
+                <Chip key={t} className="py-0.5 text-xs">
+                  {tagLabel(t)}
                 </Chip>
               ))}
             </span>

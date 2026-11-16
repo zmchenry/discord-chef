@@ -1,10 +1,11 @@
 import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import type { Recipe } from "../../../shared/schema";
 import { Button, LinkButton, StateMessage, TextAreaField, TextField } from "../components/ui";
 import { emptyForm, formToInput, recipeToForm, validateForm, type FormErrors, type RecipeFormValues } from "../lib/recipeForm";
+import { ApiError } from "../lib/api";
 import { useRecipe, useSaveRecipe } from "../lib/queries";
 
 // /recipes/new and /recipes/:id/edit.
@@ -65,11 +66,19 @@ export function RecipeForm({ base }: { base?: Recipe }) {
       <TextAreaField label="Steps" hint="One per line" rows={6} {...bind("instructions")} />
       <TextField label="Source link" type="url" inputMode="url" placeholder="https://" {...bind("sourceUrl")} />
 
-      {save.isError && (
-        <p role="alert" className="m-0 font-semibold text-danger">
-          Couldn't save: {save.error.message}
-        </p>
-      )}
+      {save.isError &&
+        (save.error instanceof ApiError && save.error.existingId ? (
+          <p role="alert" className="m-0 font-semibold text-danger">
+            A recipe with this title already exists.{" "}
+            <Link to={`/recipes/${save.error.existingId}`} className="inline-flex min-h-11 items-center text-primary">
+              Open it
+            </Link>
+          </p>
+        ) : (
+          <p role="alert" className="m-0 font-semibold text-danger">
+            Couldn't save: {save.error.message}
+          </p>
+        ))}
 
       <div className="flex gap-3 pb-4">
         <Button type="submit" disabled={save.isPending} className="flex-1">

@@ -49,6 +49,31 @@ Only `wrangler dev` reads `.dev.vars`. Every other wrangler command in the
 Makefile passes `--env-file /dev/null`, so local secrets never end up in the
 generated `Env` type or near a deploy.
 
+## Naming
+
+Every name is normalised by `shared/normalize.ts` before it is stored. The
+Worker applies it on every recipe write (`shared/recipeInput.ts`), and the
+Notion import should use the same functions. All of them are idempotent.
+
+- **Recipe titles**: HTML stripped, straight quotes, single spaces, trailing
+  punctuation dropped (except `!` and `)`), `&` becomes "and", then Title Case
+  with small words (a, and, of, with, ...) lower case unless first or last.
+  Hyphenated parts are each capitalised ("Stir-Fry"); 2-4 letter all-caps
+  words stay ("BLT"). Titles are unique, ignoring case, among non-archived
+  recipes: a duplicate gets 409 with `existingId`.
+- **Ingredients** (and staples): a lower-case canonical key, unique in the
+  catalog. `parseIngredientLine` splits "1 1/2 cups flour, sifted" into
+  quantity 1.5, unit `cup`, name "flour", note "sifted" (unicode fractions,
+  ranges, package sizes in parentheses). Units come from a fixed set (tsp,
+  tbsp, cup, oz, fl oz, lb, g, kg, ml, l, clove, can, jar, package, bunch,
+  head, slice, piece, pinch, stick). `displayIngredientName` gives the
+  sentence-case form for display ("Sour cream").
+- **Tags**: lower case, hyphens for spaces, `[a-z0-9-]` only. `TAGS` is the
+  controlled vocabulary with display labels; other tags are allowed.
+- **Stores and people**: Title Case. **Sections** must be one of `SECTIONS`
+  (Produce ... Health); Notion's names map onto them ("Fruit/Veg" is
+  Produce) and anything unknown is an error.
+
 ## Auth
 
 Cloudflare Access protects the whole host (Google login, two allowed emails).

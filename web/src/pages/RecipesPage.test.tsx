@@ -36,7 +36,7 @@ describe("RecipesPage", () => {
     expect(link).toHaveAttribute("href", `/recipes/${tacos.id}`);
     expect(link).toHaveTextContent("35 min");
     expect(link).toHaveTextContent("6 ingredients");
-    expect(link).toHaveTextContent("dinner");
+    expect(link).toHaveTextContent("Dinner");
   });
 
   it("shows the empty state", async () => {
@@ -50,9 +50,9 @@ describe("RecipesPage", () => {
     renderAt(<RecipesPage />, { path: "/recipes" });
     await screen.findByRole("link", { name: /chicken tacos/i });
 
-    await userEvent.click(screen.getByRole("button", { name: "dinner" }));
+    await userEvent.click(screen.getByRole("button", { name: "Dinner" }));
     await waitFor(() => expect(fetch).toHaveBeenLastCalledWith("/api/recipes?tag=dinner", expect.anything()));
-    expect(screen.getByRole("button", { name: "dinner" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Dinner" })).toHaveAttribute("aria-pressed", "true");
 
     await userEvent.type(screen.getByLabelText("Search recipes"), "taco");
     await waitFor(() => expect(fetch).toHaveBeenLastCalledWith("/api/recipes?q=taco&tag=dinner", expect.anything()));

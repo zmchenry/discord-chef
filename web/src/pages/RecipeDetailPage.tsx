@@ -1,6 +1,7 @@
 import { ArrowLeft, Clock, ExternalLink, Pencil, Trash2, Users } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { tagLabel } from "../../../shared/normalize";
 import { Button, Card, Chip, LinkButton, StateMessage } from "../components/ui";
 import { formatMinutes } from "../lib/recipeForm";
 import { useArchiveRecipe, useRecipe } from "../lib/queries";
@@ -65,8 +66,8 @@ export function RecipeDetailPage() {
             </Chip>
           )}
           {r.tags.map((t) => (
-            <Chip key={t} className="bg-accent-soft text-accent capitalize">
-              {t}
+            <Chip key={t} className="bg-accent-soft text-accent">
+              {tagLabel(t)}
             </Chip>
           ))}
         </div>
