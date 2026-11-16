@@ -90,6 +90,25 @@ npx wrangler secret put ALLOWED_EMAILS
 
 If it is unset, every authenticated route answers 401.
 
+## Notifications
+
+Web Push is sent by the Worker itself (`api/src/notifications/`, no
+dependency), from a cron every 15 minutes evaluated in America/New_York, and
+when a shopping list is generated. It needs a VAPID key pair, made once:
+
+```sh
+node scripts/gen-vapid.mjs                 # prints VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY
+npx wrangler secret put VAPID_PUBLIC_KEY
+npx wrangler secret put VAPID_PRIVATE_KEY
+npx wrangler secret put VAPID_SUBJECT      # a contact URL, e.g. mailto:you@your-domain or https://chef.zmchenry.com
+```
+
+For local use put the same three lines in `.dev.vars`. Without them the
+settings screen reports push as not configured and the cron sends nothing.
+Changing the key pair invalidates every phone's subscription (turn
+notifications off and on again on each). Each person turns notifications on
+per phone under More, Notifications.
+
 ## Deploys
 
 Production deploys run on **Cloudflare Workers Builds** (the Git integration

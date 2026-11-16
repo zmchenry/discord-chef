@@ -116,7 +116,7 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached ?? (await network) ?? Response.error();
 }
 
-/* Web Push (phase 6). The Worker sends a JSON payload:
+/* Web Push (api/src/notifications). The Worker sends a JSON payload:
  *   { "title": "...", "body": "...", "url": "/week", "tag": "daily_cooking" }
  * Every field is optional. `tag` collapses repeats of the same kind. */
 self.addEventListener("push", (event) => {
@@ -133,6 +133,9 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
       tag: data.tag,
+      // With a tag, a repeat (e.g. a second test) would otherwise replace the
+      // first silently, with no sound or vibration.
+      renotify: Boolean(data.tag),
       data: { url: sameOriginPath(data.url) },
     }),
   );
@@ -148,10 +151,17 @@ self.addEventListener("notificationclick", (event) => {
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       const exact = windows.find((w) => w.url === target);
       if (exact) return exact.focus();
-      const any = windows[0];
+      // navigate() only works on a window this worker controls, and rejects
+      // otherwise, so fall back to a new window.
+      const any = windows.find((w) => "navigate" in w);
       if (any) {
-        await any.focus();
-        return any.navigate(target);
+        try {
+          await any.focus();
+          const navigated = await any.navigate(target);
+          if (navigated) return navigated;
+        } catch {
+          // fall through
+        }
       }
       return self.clients.openWindow(target);
     })(),
