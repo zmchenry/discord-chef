@@ -49,9 +49,9 @@ export function ReviewView({ week, onBack }: { week: WeekView; onBack: () => voi
                   ) : (
                     <ul className="m-0 grid min-w-0 list-none gap-0.5 p-0">
                       {slots.map(({ meal, slot }) => (
-                        <li key={meal} className="truncate">
-                          <span className="mr-2 text-xs font-bold text-muted">{MEAL_LABEL[meal][0]}</span>
-                          {slot!.kind === "recipe" ? slot!.recipe?.title : MARKER_LABEL[slot!.kind]}
+                        <li key={meal} className="flex items-baseline gap-2">
+                          <span className="w-3 shrink-0 text-xs font-bold text-muted">{MEAL_LABEL[meal][0]}</span>
+                          <span className="min-w-0">{slot!.kind === "recipe" ? slot!.recipe?.title : MARKER_LABEL[slot!.kind]}</span>
                         </li>
                       ))}
                     </ul>

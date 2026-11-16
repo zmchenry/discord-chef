@@ -181,7 +181,13 @@ function WeekBody({
       <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-[5] mt-3 flex gap-2 bg-bg px-4 py-3">
         <Button variant="secondary" className="flex-1" onClick={onAutofill} disabled={autofilling || open === 0}>
           <Sparkles size={18} aria-hidden="true" />
-          {autofilling ? "Filling…" : "Auto-fill the rest"}
+          {autofilling ? (
+            "Filling…"
+          ) : (
+            <span className="whitespace-nowrap">
+              Auto-fill<span className="max-[379px]:hidden"> the rest</span>
+            </span>
+          )}
         </Button>
         <Button className="flex-1" onClick={onReview}>
           Finish week

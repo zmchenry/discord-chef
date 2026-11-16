@@ -103,7 +103,7 @@ export function SlotSheet({
         </header>
 
         <div className="overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3">
-          <label className="flex min-h-11 items-center gap-2 rounded-sm border border-border bg-surface px-3">
+          <label className="flex min-h-11 items-center gap-2 rounded-sm border border-border bg-surface px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
             <Search size={18} className="text-muted" aria-hidden="true" />
             <input
               type="search"
@@ -195,7 +195,7 @@ export function SlotSheet({
                       {s.reasons.length > 0 && (
                         <ul className="m-0 mt-1.5 flex list-none flex-wrap gap-1.5 p-0">
                           {s.reasons.map((r) => (
-                            <li key={r} className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
+                            <li key={r} className="rounded-sm bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
                               <ReasonText text={r} />
                             </li>
                           ))}

@@ -78,7 +78,7 @@ export function RecipesPage() {
                 aria-pressed={active}
                 onClick={() => update("tag", t)}
                 className={cx(
-                  "pressable min-h-11 shrink-0 whitespace-nowrap rounded-full px-3.5 text-sm font-bold",
+                  "pressable min-h-11 min-w-11 shrink-0 whitespace-nowrap rounded-full px-3 text-sm font-bold",
                   active ? "bg-primary text-on-primary" : "bg-surface-2 text-text",
                 )}
               >
@@ -123,7 +123,7 @@ export function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
           {recipe.icon ?? recipe.title.charAt(0).toUpperCase()}
         </span>
         <span className="grid min-w-0 flex-1 gap-1">
-          <span className="truncate font-display text-lg font-semibold">{recipe.title}</span>
+          <span className="line-clamp-2 font-display text-lg font-semibold leading-snug">{recipe.title}</span>
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             {time && (
               <span className="inline-flex items-center gap-1">

@@ -83,7 +83,7 @@ export function AppearancePage() {
                     aria-checked={on}
                     onClick={() => update({ mode: m.id })}
                     className={cx(
-                      "pressable min-h-11 rounded-sm px-2 text-sm font-bold",
+                      "pressable min-h-11 whitespace-nowrap rounded-sm px-1 text-sm font-bold",
                       on ? "bg-primary text-on-primary" : "bg-transparent text-text",
                     )}
                   >

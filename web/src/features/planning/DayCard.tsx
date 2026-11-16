@@ -45,9 +45,9 @@ export function DayCard({
           {day.constraints.map((c, i) => (
             <li
               key={i}
-              className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-sm font-semibold text-accent"
+              className="inline-flex items-start gap-1.5 rounded-sm bg-accent-soft px-2.5 py-1 text-sm font-semibold text-accent"
             >
-              <CalendarClock size={14} aria-hidden="true" />
+              <CalendarClock size={14} aria-hidden="true" className="mt-[3px] shrink-0" />
               <ReasonText text={c.reason} />
             </li>
           ))}
@@ -81,7 +81,7 @@ function DayEvents({ events }: { events: DayEventWire[] }) {
     <div className="px-1 pb-2 text-sm text-muted">
       <ul className="m-0 grid list-none gap-0.5 p-0">
         {shown.map((ev, i) => (
-          <li key={i} className="truncate">
+          <li key={i} className="line-clamp-2">
             <span className="font-semibold tabular-nums">{ev.time}</span>
             {ev.allDay ? " · " : " "}
             {ev.title}
@@ -112,10 +112,16 @@ function SlotRow({
   onOpen: () => void;
   onToggleLock: (slot: WeekSlot) => void;
 }) {
+  // Three looks: empty (dashed neutral), auto pick (dashed primary + "auto"),
+  // and yours or locked (a solid accent fill: the most settled).
+  const yours = !!slot && (slot.source !== "auto" || slot.locked);
   const letter = (
     <span
       aria-hidden="true"
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-bold text-muted"
+      className={cx(
+        "grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold",
+        yours ? "bg-surface text-accent" : "bg-surface-2 text-muted",
+      )}
     >
       {MEAL_LABEL[meal][0]}
     </span>
@@ -142,7 +148,7 @@ function SlotRow({
     <div
       className={cx(
         "flex min-h-14 items-center rounded-sm",
-        auto ? "border border-dashed border-primary" : "border border-transparent bg-bg",
+        yours ? "border border-accent/40 bg-accent-soft" : "border border-dashed border-primary",
       )}
     >
       <button
@@ -153,9 +159,9 @@ function SlotRow({
       >
         {letter}
         <span className="min-w-0 flex-1">
-          <span className={cx("flex items-center gap-1.5 font-semibold", slot.kind === "skip" && "text-muted")}>
-            {MarkerIcon && <MarkerIcon size={16} aria-hidden="true" />}
-            <span className="truncate">
+          <span className={cx("flex items-center gap-1.5 font-semibold leading-snug", slot.kind === "skip" && "text-muted")}>
+            {MarkerIcon && <MarkerIcon size={16} aria-hidden="true" className="shrink-0" />}
+            <span className="line-clamp-2">
               {slot.recipe?.icon && slot.kind === "recipe" ? `${slot.recipe.icon} ` : ""}
               {title}
             </span>
@@ -165,7 +171,7 @@ function SlotRow({
           )}
         </span>
         {auto && (
-          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-bold text-primary">
+          <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-bold text-primary">
             auto
           </span>
         )}
@@ -180,7 +186,7 @@ function SlotRow({
           slot.locked ? "text-primary" : "text-muted",
         )}
       >
-        {slot.locked ? <Lock size={18} /> : <LockOpen size={18} />}
+        {slot.locked ? <Lock size={18} strokeWidth={2.5} /> : <LockOpen size={18} />}
       </button>
     </div>
   );

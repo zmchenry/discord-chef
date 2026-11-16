@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BellOff, BellRing } from "lucide-react";
+import { BellOff, BellRing } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
 import type { NotificationPref } from "../../../../shared/notifications";
 import type { NotificationKind } from "../../../../shared/schema";
-import { Button, Card, LinkButton, StateMessage, TextField } from "../../components/ui";
+import { Button, Card, PageHeader, StateMessage, TextField } from "../../components/ui";
+import { BackToMore } from "../planning/SettingsLink";
 import { cx } from "../../lib/cx";
 import {
   currentSubscription,
@@ -25,15 +26,14 @@ const prefsKey = ["notifications", "prefs"] as const;
 
 export function NotificationsPage() {
   return (
-    <div className="grid gap-4 px-4 pb-6 pt-3">
-      <LinkButton to="/more" variant="ghost" className="-ml-3 justify-self-start px-3">
-        <ArrowLeft size={20} aria-hidden="true" />
-        <span>More</span>
-      </LinkButton>
-      <h1 className="m-0 text-3xl">Notifications</h1>
-      <DeviceCard />
-      <PrefsList />
-    </div>
+    <>
+      <BackToMore />
+      <PageHeader title="Notifications" />
+      <div className="grid gap-4 px-4 pb-6">
+        <DeviceCard />
+        <PrefsList />
+      </div>
+    </>
   );
 }
 

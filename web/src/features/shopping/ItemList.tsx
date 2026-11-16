@@ -162,7 +162,7 @@ function Rows({ items, recipes, reorder, onCheck, onRemove, onMove }: Omit<ListP
                 >
                   {displayIngredientName(item.name)}
                 </span>
-                {sub && <span className={cx("truncate text-[13px] text-muted", item.checked && "opacity-70")}>{sub}</span>}
+                {sub && <span className={cx("line-clamp-2 text-[13px] text-muted", item.checked && "opacity-70")}>{sub}</span>}
               </span>
               {item.amount && (
                 <span className={cx("shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-muted", item.checked && "opacity-70")}>

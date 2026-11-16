@@ -171,9 +171,8 @@ function FeedStatus({ status, checking, onCheck }: { status: CalendarSettings; c
           {status.error}
         </p>
       )}
-      <p className="m-0 flex flex-wrap items-center gap-x-1 text-muted">
+      <p className="m-0 flex flex-wrap items-center gap-x-2 text-muted">
         <span>{fetched}</span>
-        <span aria-hidden="true">·</span>
         <button
           type="button"
           onClick={onCheck}
