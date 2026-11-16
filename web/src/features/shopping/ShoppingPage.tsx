@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -17,6 +17,7 @@ import {
   useDeleteItem,
   useGenerate,
   useRankItem,
+  useRefreshPrices,
   useShoppingWeek,
   useUpdateList,
 } from "./queries";
@@ -121,6 +122,23 @@ export function ShoppingPage() {
   );
 }
 
+// Shown while the week has no prices at all, so the store totals can fill in.
+function EstimatePrices({ weekId }: { weekId: string }) {
+  const refresh = useRefreshPrices(weekId);
+  const nothing = refresh.isSuccess && refresh.data.estimated === 0;
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+      <Button variant="secondary" className="px-3 text-sm" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+        <Tag size={16} aria-hidden="true" />
+        {refresh.isPending ? "Estimating…" : "Estimate prices"}
+      </Button>
+      <span className="text-sm text-muted" role="status">
+        {refresh.isError ? "Couldn't estimate prices." : nothing ? "No prices came back. Try again later." : "For store totals"}
+      </span>
+    </div>
+  );
+}
+
 function WeekLists({ week }: { week: ShoppingWeekResponse }) {
   const [tripIndex, setTripIndex] = useState(0);
   const [editingAisles, setEditingAisles] = useState(false);
@@ -152,6 +170,7 @@ function WeekLists({ week }: { week: ShoppingWeekResponse }) {
           />
         )}
         <StorePicker stores={week.stores} list={list} onPick={(storeId) => update.mutate({ listId: list.id, storeId })} />
+        {list.totals.length === 0 && rows.some((r) => r.ingredientId !== null) && <EstimatePrices weekId={week.weekId} />}
         <button
           type="button"
           role="switch"

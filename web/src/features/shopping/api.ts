@@ -1,5 +1,6 @@
 import type { z } from "zod";
 
+import { priceRefreshResponseSchema } from "../../../../shared/prices";
 import { errorResponseSchema, ingredientListResponseSchema } from "../../../../shared/schema";
 import {
   shoppingItemViewSchema,
@@ -55,4 +56,5 @@ export const shoppingApi = {
     send(storeSectionsSchema, `/stores/${storeId}/sections`, "GET", undefined, signal).then((r) => r.sections),
   putSections: (storeId: number, sections: string[]) =>
     send(storeSectionsSchema, `/stores/${storeId}/sections`, "PUT", { sections }).then((r) => r.sections),
+  refreshPrices: (weekId: string) => send(priceRefreshResponseSchema, "/prices/refresh", "POST", { weekId }),
 };

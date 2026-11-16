@@ -52,7 +52,7 @@ export function StorePicker({
               <span className="font-bold leading-tight">{s.name}</span>
               {total !== null && (
                 <span className={cx("text-xs font-semibold leading-tight", !selected && "text-muted")}>
-                  ~{dollars(total)}{rec?.storeId === s.id ? " · lowest" : ""}
+                  {dollars(total)} est.{rec?.storeId === s.id ? " · lowest" : ""}
                 </span>
               )}
             </button>
@@ -61,7 +61,7 @@ export function StorePicker({
       </div>
       {recStore && rec && current !== null && current > rec.cents && (
         <p className="m-0 px-1 text-sm font-semibold text-accent">
-          {recStore.name} is about {dollars(current - rec.cents)} cheaper for this trip.
+          {recStore.name} is about {dollars(current - rec.cents)} cheaper for this trip (est.).
         </p>
       )}
     </div>

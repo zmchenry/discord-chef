@@ -78,6 +78,16 @@ function useWeekWrite<V>(weekId: string, fn: (v: V) => Promise<ShoppingWeekRespo
   });
 }
 
+// "Estimate prices": waits for the estimates, then refetches the week so
+// the store totals appear.
+export function useRefreshPrices(weekId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => shoppingApi.refreshPrices(weekId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: shoppingKey(weekId) }),
+  });
+}
+
 export const useGenerate = (weekId: string) =>
   useWeekWrite(weekId, (twoTrips?: boolean) => shoppingApi.generate(weekId, { twoTrips }));
 
