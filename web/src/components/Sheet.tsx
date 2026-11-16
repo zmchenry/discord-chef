@@ -7,16 +7,19 @@ import { cx } from "../lib/cx";
 const open: object[] = [];
 
 // A modal panel: a bottom sheet on phones and tablets, a centred dialog on
-// desktop (lg). Focus moves into it and back to where it came from on close;
-// Escape and a tap on the scrim close it; the page behind does not scroll.
+// desktop (lg). Focus moves into it, Tab stays inside it, and focus goes back
+// to where it came from on close; Escape and a tap on the scrim close it; the
+// page behind does not scroll.
 export function Sheet({
   labelledBy,
+  describedBy,
   label,
   onClose,
   children,
   className,
 }: {
   labelledBy?: string;
+  describedBy?: string;
   label?: string;
   onClose: () => void;
   children: ReactNode;
@@ -34,7 +37,9 @@ export function Sheet({
     // A child (a menu) may already have focused something inside.
     if (!panel.current?.contains(document.activeElement)) panel.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open[open.length - 1] === token) close.current();
+      if (open[open.length - 1] !== token) return;
+      if (e.key === "Escape") close.current();
+      if (e.key === "Tab" && panel.current) trapTab(e, panel.current);
     };
     document.addEventListener("keydown", onKey);
     const overflow = document.body.style.overflow;
@@ -55,6 +60,7 @@ export function Sheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
         aria-label={label}
         tabIndex={-1}
         className={cx(
@@ -69,4 +75,28 @@ export function Sheet({
     </div>,
     document.body,
   );
+}
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// Keeps Tab and Shift+Tab cycling through the panel's controls.
+function trapTab(e: KeyboardEvent, panel: HTMLElement) {
+  const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  const active = document.activeElement;
+  if (items.length === 0) {
+    e.preventDefault();
+    panel.focus();
+    return;
+  }
+  const first = items[0]!;
+  const last = items[items.length - 1]!;
+  const outside = !panel.contains(active) || active === panel;
+  if (e.shiftKey && (active === first || outside)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (active === last || outside)) {
+    e.preventDefault();
+    first.focus();
+  }
 }

@@ -1,4 +1,5 @@
 import { AppearancePage } from "./features/appearance/AppearancePage";
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
@@ -15,6 +16,11 @@ import { ShoppingPage } from "./features/shopping/ShoppingPage";
 import { RecipeDetailPage } from "./pages/RecipeDetailPage";
 import { RecipeEditPage } from "./pages/RecipeEditPage";
 import { RecipesPage } from "./pages/RecipesPage";
+
+// Dev-only page for looking at the modal layouts; not in production builds.
+const ModalDemo = import.meta.env.DEV
+  ? lazy(() => import("./features/modal/ModalDemo").then((m) => ({ default: m.ModalDemo })))
+  : null;
 
 export default function App() {
   return (
@@ -35,6 +41,16 @@ export default function App() {
         <Route path="more/calendar" element={<CalendarPage />} />
         <Route path="more/breakfast-lunch" element={<BreakfastLunchPage />} />
         <Route path="more/appearance" element={<AppearancePage />} />
+        {ModalDemo && (
+          <Route
+            path="dev/modal"
+            element={
+              <Suspense fallback={null}>
+                <ModalDemo />
+              </Suspense>
+            }
+          />
+        )}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
