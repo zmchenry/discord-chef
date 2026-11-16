@@ -1,9 +1,9 @@
 import { cleanText, parseIngredientLine, SECTIONS, tryNormalizeSectionName } from '../../../shared/normalize'
-import type { Ingredient, ShoppingSort, Trip } from '../../../shared/schema'
-import type { ShoppingItemView, ShoppingListView, ShoppingWeekResponse } from '../../../shared/shopping'
+import type { ShoppingSort, Trip } from '../../../shared/schema'
+import type { PinnedIngredient, ShoppingItemView, ShoppingListView, ShoppingWeekResponse } from '../../../shared/shopping'
 import { formatPart } from '../../../shared/shopping/aggregate'
 import { learnedRanks } from '../../../shared/shopping/sort'
-import { recommendStore, storeTotals } from '../../../shared/shopping/store'
+import { pinnedTotals, recommendStore, storeTotals } from '../../../shared/shopping/store'
 import { listStores } from '../db'
 
 // Data access for shopping. Same conventions as api/src/db.ts: the D1
@@ -33,7 +33,13 @@ export interface ItemRow {
   manual_rank: number | null
   checked_at: number | null
   checked_by: string | null
+  // The ingredient's store pin, joined in by ITEM_SELECT.
+  pin_store_id?: number | null
 }
+
+// Items with their ingredient's store pin.
+const ITEM_SELECT = `SELECT si.*, i.store_id AS pin_store_id FROM shopping_items si
+  LEFT JOIN ingredients i ON i.id = si.ingredient_id`
 
 interface IngredientRow {
   id: number
@@ -42,6 +48,7 @@ interface IngredientRow {
   perishable: number
   is_staple: number
   aliases: string
+  store_id: number | null
 }
 
 const strings = (json: string): string[] => {
@@ -63,21 +70,23 @@ export const toItemView = (r: ItemRow): ShoppingItemView => ({
   manualRank: r.manual_rank,
   checkedAt: r.checked_at,
   checkedBy: r.checked_by,
+  storeId: r.pin_store_id ?? null,
 })
 
-const toIngredient = (r: IngredientRow): Ingredient => ({
+const toIngredient = (r: IngredientRow): PinnedIngredient => ({
   id: r.id,
   name: r.name,
   section: r.section,
   perishable: r.perishable === 1,
   isStaple: r.is_staple === 1,
   aliases: strings(r.aliases),
+  storeId: r.store_id,
 })
 
 const TRIP_ORDER = `CASE trip WHEN 'midweek' THEN 1 ELSE 0 END`
 
 export async function getShoppingWeek(db: D1Database, weekId: string): Promise<ShoppingWeekResponse> {
-  const weekItems = `SELECT si.* FROM shopping_items si JOIN shopping_lists l ON l.id = si.list_id WHERE l.week_id = ?1`
+  const weekItems = `${ITEM_SELECT} JOIN shopping_lists l ON l.id = si.list_id WHERE l.week_id = ?1`
   const [listRes, itemRes, recipeRes, priceRes] = await db.batch([
     db.prepare(`SELECT * FROM shopping_lists WHERE week_id = ?1 ORDER BY ${TRIP_ORDER}`).bind(weekId),
     db.prepare(`${weekItems} ORDER BY si.id`).bind(weekId),
@@ -125,6 +134,7 @@ export async function getShoppingWeek(db: D1Database, weekId: string): Promise<S
       sort: l.sort,
       items: its,
       totals: prices.length ? storeTotals(its, prices, storeIds) : [],
+      pinnedTotals: pinnedTotals(its, prices, storeIds),
       recommendation: recommendStore(its, prices),
       learned: learned.get(l.store_id) ?? { sections: {}, ingredients: {} },
     }
@@ -205,7 +215,7 @@ export async function patchItem(
     if (name) stmts.push(db.prepare('UPDATE shopping_items SET name = ?2 WHERE id = ?1').bind(id, name))
   }
   if (stmts.length) await db.batch(stmts)
-  const row = await db.prepare('SELECT * FROM shopping_items WHERE id = ?1').bind(id).first<ItemRow>()
+  const row = await db.prepare(`${ITEM_SELECT} WHERE si.id = ?1`).bind(id).first<ItemRow>()
   return row && toItemView(row)
 }
 
@@ -339,7 +349,32 @@ export async function putSections(
   return res.meta.changes ? { sections } : null
 }
 
-export async function listStaples(db: D1Database): Promise<Ingredient[]> {
+export async function listStaples(db: D1Database): Promise<PinnedIngredient[]> {
   const { results } = await db.prepare('SELECT * FROM ingredients WHERE is_staple = 1 ORDER BY name').all<IngredientRow>()
   return results.map(toIngredient)
+}
+
+// Pins an ingredient to a store, or unpins it (null). Returns 'no-store'
+// for an unknown store and null for an unknown ingredient.
+export async function setIngredientStore(
+  db: D1Database,
+  ingredientId: number,
+  storeId: number | null,
+): Promise<PinnedIngredient | 'no-store' | null> {
+  if (storeId !== null) {
+    const store = await db.prepare('SELECT 1 AS x FROM stores WHERE id = ?1').bind(storeId).first()
+    if (!store) return 'no-store'
+  }
+  const row = await db
+    .prepare('UPDATE ingredients SET store_id = ?2 WHERE id = ?1 RETURNING *')
+    .bind(ingredientId, storeId)
+    .first<IngredientRow>()
+  return row && toIngredient(row)
+}
+
+export async function listStorePins(db: D1Database): Promise<Array<{ ingredientId: number; storeId: number }>> {
+  const { results } = await db
+    .prepare('SELECT id AS ingredientId, store_id AS storeId FROM ingredients WHERE store_id IS NOT NULL ORDER BY id')
+    .all<{ ingredientId: number; storeId: number }>()
+  return results
 }

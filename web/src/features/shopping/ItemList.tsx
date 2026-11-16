@@ -1,25 +1,34 @@
-import { Check, GripVertical, X } from "lucide-react";
+import { Check, GripVertical, Trash2 } from "lucide-react";
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import { displayIngredientName } from "../../../../shared/normalize";
+import type { Store } from "../../../../shared/schema";
 import type { ShoppingItemView } from "../../../../shared/shopping";
 import type { ItemGroup } from "../../../../shared/shopping/sort";
+import { ActionMenu, type MenuItem } from "../../components/OverflowMenu";
 import { Card } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { StoreBadge } from "./StorePin";
+import { storeMenuItems } from "./storeMenu";
 
 export type Row = ShoppingItemView & { checked: boolean };
 
 interface ListProps {
   groups: ItemGroup<Row>[];
   recipes: Record<string, string>;
+  stores: Store[];
   // My order: rows get a drag handle.
   reorder: boolean;
   onCheck: (item: Row, checked: boolean) => void;
   onRemove: (item: Row) => void;
   onMove: (item: Row, rank: number) => void;
+  onPin: (item: Row, storeId: number | null) => void;
 }
 
-export function ItemList({ groups, recipes, reorder, onCheck, onRemove, onMove }: ListProps) {
+type RowsProps = Omit<ListProps, "groups"> & { items: Row[] };
+
+export function ItemList({ groups, ...rest }: ListProps) {
+  const { reorder } = rest;
   return (
     <div className="grid gap-4">
       {groups.map((g) => {
@@ -34,19 +43,37 @@ export function ItemList({ groups, recipes, reorder, onCheck, onRemove, onMove }
               </h2>
             )}
             <Card className="overflow-hidden">
-              <Rows
-                items={g.items}
-                recipes={recipes}
-                reorder={reorder}
-                onCheck={onCheck}
-                onRemove={onRemove}
-                onMove={onMove}
-              />
+              <Rows items={g.items} {...rest} />
             </Card>
           </section>
         );
       })}
     </div>
+  );
+}
+
+// Items pinned to a store other than the trip's: bought on a separate stop,
+// so they sit apart with their own count and estimate.
+export function AlsoAt({ store, cents, ...rest }: RowsProps & { store: Store; cents: number | null }) {
+  const left = rest.items.filter((i) => !i.checked).length;
+  return (
+    <section className="grid gap-1.5" aria-label={`Also at ${store.name}`}>
+      <div className="flex items-end justify-between gap-2 px-1">
+        <h2 className="m-0 flex items-center gap-2 font-body text-xs font-extrabold uppercase tracking-[0.08em] text-muted">
+          Also at <StoreBadge name={store.name} className="text-[13px] normal-case tracking-normal" />
+        </h2>
+        <span className="font-body text-xs font-extrabold uppercase tracking-[0.08em] text-muted">
+          {left ? `${left} left` : "Done"}
+        </span>
+      </div>
+      <p className="m-0 px-1 text-[13px] text-muted">
+        Always bought at {store.name}
+        {cents !== null && cents > 0 ? `, about $${Math.round(cents / 100)}` : ""}. Not in the trip's total.
+      </p>
+      <Card className="overflow-hidden">
+        <Rows {...rest} />
+      </Card>
+    </section>
   );
 }
 
@@ -66,7 +93,13 @@ function rankAt(order: Row[], index: number): number {
   return (rank(index - 1) + rank(index)) / 2;
 }
 
-function Rows({ items, recipes, reorder, onCheck, onRemove, onMove }: Omit<ListProps, "groups"> & { items: Row[] }) {
+function rowMenu(item: Row, stores: Store[], onPin: RowsProps["onPin"], onRemove: RowsProps["onRemove"]): MenuItem[] {
+  const menu: MenuItem[] = item.ingredientId != null ? storeMenuItems(stores, item.storeId, (s) => onPin(item, s)) : [];
+  if (item.source !== "generated") menu.push({ label: "Remove from list", icon: Trash2, destructive: true, onSelect: () => onRemove(item) });
+  return menu;
+}
+
+function Rows({ items, recipes, stores, reorder, onCheck, onRemove, onMove, onPin }: RowsProps) {
   const listRef = useRef<HTMLUListElement>(null);
   // While dragging: the item, how far it has moved, the slot it would land in.
   const [drag, setDrag] = useState<{ id: number; startY: number; dy: number; mids: number[]; from: number; to: number } | null>(
@@ -128,6 +161,8 @@ function Rows({ items, recipes, reorder, onCheck, onRemove, onMove }: Omit<ListP
         const sub = forText(item, recipes);
         const dragging = drag?.id === item.id;
         const canMove = reorder && !item.checked;
+        const pin = item.storeId != null ? stores.find((s) => s.id === item.storeId) : undefined;
+        const menu = reorder || item.id < 0 ? [] : rowMenu(item, stores, onPin, onRemove);
         return (
           <li
             key={item.id}
@@ -164,21 +199,22 @@ function Rows({ items, recipes, reorder, onCheck, onRemove, onMove }: Omit<ListP
                 </span>
                 {sub && <span className={cx("line-clamp-2 text-[13px] text-muted", item.checked && "opacity-70")}>{sub}</span>}
               </span>
-              {item.amount && (
-                <span className={cx("shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-muted", item.checked && "opacity-70")}>
-                  {item.amount}
+              {(item.amount || pin) && (
+                <span className={cx("grid shrink-0 justify-items-end gap-1", item.checked && "opacity-70")}>
+                  {item.amount && <span className="whitespace-nowrap text-sm font-bold tabular-nums text-muted">{item.amount}</span>}
+                  {pin && <StoreBadge name={pin.name} />}
                 </span>
               )}
             </label>
-            {item.source !== "generated" && !reorder && (
-              <button
-                type="button"
-                aria-label={`Remove ${item.name}`}
-                onClick={() => onRemove(item)}
-                className="pressable grid size-11 shrink-0 place-items-center rounded-full text-muted"
-              >
-                <X size={18} aria-hidden="true" />
-              </button>
+            {menu.length > 0 ? (
+              <ActionMenu
+                items={menu}
+                label={`More for ${displayIngredientName(item.name)}`}
+                title={displayIngredientName(item.name)}
+                triggerClassName="pressable grid size-11 shrink-0 place-items-center rounded-full bg-transparent text-muted hover:bg-surface-2"
+              />
+            ) : (
+              !reorder && <span aria-hidden="true" className="w-11 shrink-0" />
             )}
             {canMove && (
               <button

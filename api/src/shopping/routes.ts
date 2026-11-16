@@ -7,6 +7,7 @@ import {
   addShoppingItemSchema,
   generateShoppingInputSchema,
   ingredientPricesInputSchema,
+  ingredientStoreInputSchema,
   shoppingItemPatchSchema,
   shoppingListUpdateSchema,
   storeSectionsSchema,
@@ -20,8 +21,10 @@ import {
   getSections,
   getShoppingWeek,
   listStaples,
+  listStorePins,
   patchItem,
   putSections,
+  setIngredientStore,
   updateList,
 } from './db'
 import { estimateWeekPrices, setManualPrices, waitUntilFor } from './prices'
@@ -111,5 +114,15 @@ shopping.put('/ingredients/:id/prices', requireSession, validJson(ingredientPric
   const prices = id == null ? null : await setManualPrices(c.env.DB, id, c.req.valid('json').prices)
   return prices ? c.json({ prices }) : notFound(c)
 })
+
+// Store pins: always buy this ingredient at one store (null = any store).
+shopping.put('/ingredients/:id/store', requireSession, validJson(ingredientStoreInputSchema), async (c) => {
+  const id = intParam(c.req.param('id'))
+  const result = id == null ? null : await setIngredientStore(c.env.DB, id, c.req.valid('json').storeId)
+  if (result === 'no-store') return invalid(c, [{ path: ['storeId'], message: 'unknown store' }])
+  return result ? c.json(result) : notFound(c)
+})
+
+shopping.get('/store-pins', requireSession, async (c) => c.json({ pins: await listStorePins(c.env.DB) }))
 
 export { shopping as shoppingRoutes }
