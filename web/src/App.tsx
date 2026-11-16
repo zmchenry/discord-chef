@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
+import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { MorePage } from "./pages/MorePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ShopPage, WeekPage } from "./pages/Placeholder";
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="recipes/:id/edit" element={<RecipeEditPage />} />
         <Route path="shop" element={<ShopPage />} />
         <Route path="more" element={<MorePage />} />
+        <Route path="more/notifications" element={<NotificationsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
