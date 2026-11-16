@@ -15,6 +15,7 @@ export function MorePage() {
           </p>
         </Card>
         <SettingsLink to="/more/notifications" title="Notifications" hint="Reminders and what's cooking" />
+        <SettingsLink to="/more/breakfast-lunch" title="Breakfast & lunch" hint="Breakfast rotation and lunch staples" />
         <SettingsLink to="/more/themes" title="Day themes" hint="Taco Tuesday and friends" />
         <SettingsLink to="/more/calendar" title="Calendar" hint="Family calendar and household" />
         <SettingsLink to="/more/appearance" title="Appearance" hint="Tomato Diner or Sage, light or dark" />

@@ -2,6 +2,7 @@ import { AppearancePage } from "./features/appearance/AppearancePage";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
+import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage";
 import { ImportPage } from "./features/linkImport/ImportPage";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="more/notifications" element={<NotificationsPage />} />
         <Route path="more/themes" element={<ThemesPage />} />
         <Route path="more/calendar" element={<CalendarPage />} />
+        <Route path="more/breakfast-lunch" element={<BreakfastLunchPage />} />
         <Route path="more/appearance" element={<AppearancePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

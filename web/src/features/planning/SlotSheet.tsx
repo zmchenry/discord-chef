@@ -4,7 +4,7 @@ import { useDeferredValue, useState } from "react";
 import type { Meal, SlotKind } from "../../../../shared/schema";
 import type { WeekDay, WeekSlot } from "../../../../shared/planningApi";
 import { OverflowMenu } from "../../components/OverflowMenu";
-import { ReasonText } from "../../components/ReasonText";
+import { ReasonChips } from "../../components/ReasonChips";
 import { Sheet } from "../../components/Sheet";
 import { Button, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
@@ -189,15 +189,7 @@ export function SlotSheet({
                     </p>
                     {s.totalMinutes != null && <p className="m-0 text-sm text-muted">{s.totalMinutes} min</p>}
                   </div>
-                  {s.reasons.length > 0 && (
-                    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="Why">
-                      {s.reasons.map((r) => (
-                        <li key={r} className="rounded-sm bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
-                          <ReasonText text={r} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <ReasonChips why={s.why} reasons={s.reasons} />
                   <div className="flex justify-end">
                     {current ? (
                       <span className="inline-flex min-h-11 items-center gap-1.5 px-3 text-sm font-semibold text-muted">

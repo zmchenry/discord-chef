@@ -3,6 +3,8 @@ import {
   CalendarOff,
   Check,
   ClipboardCheck,
+  CookingPot,
+  Coffee,
   RefreshCw,
   RotateCcw,
   ShoppingBasket,
@@ -20,6 +22,8 @@ import { cx } from "../../lib/cx";
 import { useCalendarRefresh } from "../calendarRefresh/api";
 import { CalendarFreshness } from "../calendarRefresh/CalendarFreshness";
 import { ClashBanner } from "../calendarRefresh/ClashBanner";
+import { useFillBreakfastLunch } from "../guidedDinners/api";
+import { PlanDinnersFlow } from "../guidedDinners/PlanDinnersFlow";
 import { DayCard } from "./DayCard";
 import { money, shortDate } from "./format";
 import { RecommendationCard } from "./RecommendationCard";
@@ -43,6 +47,8 @@ export function WeekPage() {
   const autofill = useWeekAction(weekId, "autofill");
   const replan = useReplan(weekId);
   const [replanOpen, setReplanOpen] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const fillBL = useFillBreakfastLunch(weekId);
   const closeReplan = useCallback(() => setReplanOpen(false), []);
   const apply = useCallback((changes: SlotChange[]) => slotMutation.mutate(changes), [slotMutation]);
   const close = useCallback(() => setOpen(null), []);
@@ -53,11 +59,22 @@ export function WeekPage() {
   // One primary action in the sticky bar, chosen by the week's state; the
   // rest sit behind the header's more-actions button.
   const run = (a: Action) =>
-    a === "autofill" ? autofill.mutate() : a === "review" ? setReviewing(true) : navigate(`/shop?week=${weekId}`);
+    a === "plan"
+      ? setPlanning(true)
+      : a === "fillBL"
+        ? fillBL.mutate(false)
+        : a === "autofill"
+          ? autofill.mutate()
+          : a === "review"
+            ? setReviewing(true)
+            : navigate(`/shop?week=${weekId}`);
   const menu: MenuItem[] = [];
   if (week.data && plan) {
     if (week.data.summary.filled > 0)
       menu.push({ label: "Replan week", icon: RotateCcw, onSelect: () => setReplanOpen(true), disabled: replan.isPending });
+    if (plan.primary !== "plan") menu.push({ label: "Plan dinners", icon: CookingPot, onSelect: () => run("plan") });
+    if (plan.primary !== "fillBL" && plan.openBL > 0)
+      menu.push({ label: "Fill breakfasts & lunches", icon: Coffee, onSelect: () => run("fillBL"), disabled: fillBL.isPending });
     if (plan.primary !== "autofill" && plan.open > 0)
       menu.push({ label: autofillLabel(plan.open), icon: Sparkles, onSelect: () => run("autofill") });
     if (plan.primary !== "review")
@@ -88,9 +105,19 @@ export function WeekPage() {
               <Button
                 className="w-full lg:w-auto lg:px-6"
                 onClick={() => run(plan.primary)}
-                disabled={plan.primary === "autofill" && autofill.isPending}
+                disabled={(plan.primary === "autofill" && autofill.isPending) || (plan.primary === "fillBL" && fillBL.isPending)}
               >
-                {plan.primary === "autofill" ? (
+                {plan.primary === "plan" ? (
+                  <>
+                    <CookingPot size={18} aria-hidden="true" />
+                    Plan dinners
+                  </>
+                ) : plan.primary === "fillBL" ? (
+                  <>
+                    <Coffee size={18} aria-hidden="true" />
+                    {fillBL.isPending ? "Filling…" : "Fill breakfasts & lunches"}
+                  </>
+                ) : plan.primary === "autofill" ? (
                   <>
                     <Sparkles size={18} aria-hidden="true" />
                     {autofill.isPending ? "Filling…" : autofillLabel(plan.open)}
@@ -169,6 +196,8 @@ export function WeekPage() {
         />
       )}
 
+      {planning && week.data && <PlanDinnersFlow weekId={weekId} onClose={() => setPlanning(false)} />}
+
       {replanOpen && (
         <ReplanDialog
           busy={replan.isPending}
@@ -180,13 +209,19 @@ export function WeekPage() {
   );
 }
 
-type Action = "autofill" | "review" | "shop";
+type Action = "plan" | "fillBL" | "autofill" | "review" | "shop";
 
-// Empty slots: auto-fill them. All filled but still a draft: finish it.
-// Planned: go shopping (changes after finishing are saved from the menu).
-function primaryFor(week: WeekView): { primary: Action; open: number } {
+// Dinners missing: plan them (the guided flow). Dinners done but breakfasts
+// or lunches open: fill those by the household rules. Anything else still
+// empty: auto-fill. All filled but still a draft: finish it. Planned: go
+// shopping (changes after finishing are saved from the menu).
+function primaryFor(week: WeekView): { primary: Action; open: number; openBL: number } {
   const open = week.summary.total - week.summary.filled;
-  return { open, primary: open > 0 ? "autofill" : week.status === "draft" ? "review" : "shop" };
+  const openDinners = week.days.filter((d) => !week.slots.some((s) => s.date === d.date && s.meal === "dinner")).length;
+  const openBL = 14 - week.slots.filter((s) => s.meal !== "dinner").length;
+  const primary: Action =
+    openDinners > 0 ? "plan" : openBL > 0 ? "fillBL" : open > 0 ? "autofill" : week.status === "draft" ? "review" : "shop";
+  return { open, openBL, primary };
 }
 
 const autofillLabel = (n: number) => `Auto-fill ${n} meal${n === 1 ? "" : "s"}`;
