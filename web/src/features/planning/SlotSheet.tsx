@@ -1,8 +1,9 @@
 import { Ban, Copy, Repeat, Search, Trash2, Utensils, X, type LucideIcon } from "lucide-react";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useDeferredValue, useState } from "react";
 
 import type { Meal, SlotKind } from "../../../../shared/schema";
 import type { WeekDay, WeekSlot } from "../../../../shared/planningApi";
+import { Sheet } from "../../components/Sheet";
 import { Button, StateMessage } from "../../components/ui";
 import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
@@ -38,20 +39,6 @@ export function SlotSheet({
   const query = useDeferredValue(q);
   const suggestions = useSuggestions(weekId, day.date, meal, query);
   const [copyTo, setCopyTo] = useState<string[]>([]);
-  const panel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    panel.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-    };
-  }, [onClose]);
-
   const pick = (set: SlotChange["set"], recipe?: SlotChange["recipe"]) => {
     onApply([{ date: day.date, meal, set, recipe }]);
     onClose();
@@ -66,17 +53,7 @@ export function SlotSheet({
 
   const titleId = `sheet-${day.date}-${meal}`;
   return (
-    <div className="fixed inset-0 z-20">
-      <div className="absolute inset-0 bg-text/40" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={panel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[88dvh] max-w-xl flex-col rounded-t-card bg-bg shadow-card outline-none"
-      >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" aria-hidden="true" />
+    <Sheet labelledBy={titleId} onClose={onClose}>
         <header className="flex items-start justify-between gap-3 px-4 pt-2">
           <div>
             <p className="m-0 text-xs font-bold uppercase tracking-wider text-muted">
@@ -220,7 +197,6 @@ export function SlotSheet({
             </ul>
           )}
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

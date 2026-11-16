@@ -48,7 +48,7 @@ export function RecipesPage() {
             <span>Import link</span>
           </LinkButton>
         </div>
-        <div className="relative">
+        <div className="relative lg:max-w-md">
           <label htmlFor="recipe-search" className="sr-only">
             Search recipes
           </label>
@@ -104,7 +104,7 @@ function RecipeList({ state, filtered }: { state: ReturnType<typeof useRecipes>;
       </StateMessage>
     );
   return (
-    <ul className="m-0 grid list-none gap-3 p-0" aria-label="Recipes">
+    <ul className="m-0 grid list-none gap-3 p-0 lg:grid-cols-2 xl:grid-cols-3" aria-label="Recipes">
       {state.data.map((r) => (
         <li key={r.id}>
           <RecipeRow recipe={r} />
@@ -117,8 +117,8 @@ function RecipeList({ state, filtered }: { state: ReturnType<typeof useRecipes>;
 export function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
   const time = formatMinutes(totalMinutes(recipe));
   return (
-    <Card className="overflow-hidden">
-      <Link to={`/recipes/${recipe.id}`} className="pressable flex min-h-16 items-center gap-3 p-3 text-text no-underline">
+    <Card className="h-full overflow-hidden">
+      <Link to={`/recipes/${recipe.id}`} className="pressable flex h-full min-h-16 items-center gap-3 p-3 text-text no-underline">
         <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-sm bg-surface-2 text-2xl">
           {recipe.icon ?? recipe.title.charAt(0).toUpperCase()}
         </span>

@@ -50,7 +50,7 @@ export function WeekPage() {
         title={weekId === nextWeek ? "Next week" : weekId === thisWeek ? "This week" : `Week of ${shortDate(weekId)}`}
       />
       <div className="px-4 pb-3">
-        <div role="group" aria-label="Week" className="grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1">
+        <div role="group" aria-label="Week" className="grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1 lg:max-w-md">
           {[
             { id: thisWeek, label: "This week" },
             { id: nextWeek, label: "Next week" },
@@ -168,6 +168,9 @@ function WeekBody({
             {replanning ? "Replanning…" : "Replan week"}
           </button>
         )}
+      </div>
+      {/* Phone: one column. Desktop: a board, several days side by side. */}
+      <div className="grid grid-cols-1 gap-3 px-4 pt-3 lg:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] lg:items-start lg:gap-4">
         {week.days.map((day) => (
           <DayCard
             key={day.date}
@@ -178,8 +181,8 @@ function WeekBody({
           />
         ))}
       </div>
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-[5] mt-3 flex gap-2 bg-bg px-4 py-3">
-        <Button variant="secondary" className="flex-1" onClick={onAutofill} disabled={autofilling || open === 0}>
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-[5] mt-3 flex gap-2 bg-bg px-4 py-3 lg:bottom-0 lg:justify-end lg:py-4">
+        <Button variant="secondary" className="flex-1 lg:flex-none lg:px-6" onClick={onAutofill} disabled={autofilling || open === 0}>
           <Sparkles size={18} aria-hidden="true" />
           {autofilling ? (
             "Filling…"
@@ -189,7 +192,7 @@ function WeekBody({
             </span>
           )}
         </Button>
-        <Button className="flex-1" onClick={onReview}>
+        <Button className="flex-1 lg:flex-none lg:px-8" onClick={onReview}>
           Finish week
         </Button>
       </div>
@@ -200,7 +203,7 @@ function WeekBody({
 function SummaryBar({ week }: { week: WeekView }) {
   const { filled, total, shared, estCostCents } = week.summary;
   return (
-    <div className="sticky top-0 z-[5] border-b border-border bg-bg px-4 py-2" aria-live="polite">
+    <div className="sticky top-0 z-[5] border-b border-border bg-bg px-4 py-2 lg:top-16" aria-live="polite">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="font-bold">
           {filled}/{total} planned
