@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ApiError } from "./lib/api";
 import "./index.css";
+import { applyAppearance, readAppearance } from "./lib/appearance";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,3 +34,6 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch((err) => console.error("service worker registration failed", err));
   });
 }
+
+// Re-apply the saved palette (index.html already did) and sync the status bar colour.
+applyAppearance(readAppearance());

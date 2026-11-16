@@ -84,6 +84,11 @@ Liz), installable on their Android phones.
   from staples you already have.
 
 - **Timezone**: America/New_York.
+- **Palette rule** (2026-11-16): page backgrounds, cards, borders and text are true
+  neutral greys in light and dark mode (max(R,G,B) − min(R,G,B) ≤ 3). The accent
+  color appears only in buttons, accents, status colors and small component fills,
+  never as a tint on the background. Terracotta broke this, and that's why it felt
+  off. Finalists: Tomato Diner and Sage, both neutralized.
 - **Claude model**: Haiku 5.5 for link and voice import and price estimates (Zach's
   call, 2026-11-16: cheap, and good enough). It's one constant, `MODEL` in
   `api/src/linkImport/claude.ts`, if that ever changes.
