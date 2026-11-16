@@ -20,6 +20,7 @@ import {
 } from '../../../shared/planningApi'
 import { mealSchema, type ErrorResponse } from '../../../shared/schema'
 import { requireSession, type AppEnv } from '../session'
+import { waitUntilFor } from '../shopping/prices'
 import { ICAL_KEY, setCalendarUrl, weekConstraints } from './calendar'
 import { clearUnlockedSlots,
   deleteSlot,
@@ -238,7 +239,7 @@ planning.post('/weeks/:start/finish', jsonPost, async (c) => {
   if (!weekId) return notFound(c)
   await ensureWeek(c.env.DB, weekId)
   await setWeekStatus(c.env.DB, weekId, 'planned')
-  await onWeekPlanned(c.env, weekId)
+  await onWeekPlanned(c.env, weekId, waitUntilFor(c))
   return c.json(await weekView(c.env, weekId))
 })
 

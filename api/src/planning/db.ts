@@ -182,8 +182,10 @@ export interface CandidateWithMeta extends Candidate {
   icon: string | null
 }
 
-// Every active recipe, with its tags, ingredients, perishables, and the last
-// date it was planned in an earlier week.
+// Every active recipe, with its tags, ingredients, perishables, the last
+// date it was planned in an earlier week, and a rough cost: the cheapest
+// store's price for each linked ingredient, each counted once (null when
+// none has a price). Prices are per package, so this is an estimate.
 export async function listCandidates(db: D1Database, weekId: string): Promise<CandidateWithMeta[]> {
   const { results } = await db
     .prepare(
@@ -196,7 +198,11 @@ export async function listCandidates(db: D1Database, weekId: string): Promise<Ca
             JOIN ingredients i ON i.id = ri.ingredient_id
             WHERE ri.recipe_id = r.id AND i.perishable = 1) AS perishable_ids,
          (SELECT max(date(ps.week_id, '+' || ps.day || ' days')) FROM plan_slots ps
-            WHERE ps.recipe_id = r.id AND ps.week_id < ?1) AS last_planned
+            WHERE ps.recipe_id = r.id AND ps.week_id < ?1) AS last_planned,
+         (SELECT sum(p.cents) FROM (SELECT DISTINCT ri.ingredient_id FROM recipe_ingredients ri
+              WHERE ri.recipe_id = r.id AND ri.ingredient_id IS NOT NULL) x
+            JOIN (SELECT ingredient_id, min(cents) AS cents FROM ingredient_prices GROUP BY ingredient_id) p
+              ON p.ingredient_id = x.ingredient_id) AS est_cost
        FROM recipes r WHERE r.archived_at IS NULL ORDER BY r.title`,
     )
     .bind(weekId)
@@ -210,6 +216,7 @@ export async function listCandidates(db: D1Database, weekId: string): Promise<Ca
       ingredient_names: string
       perishable_ids: string
       last_planned: string | null
+      est_cost: number | null
     }>()
   const names = (r: { ingredient_names: string }) => parseJson<Record<string, string>>(r.ingredient_names, {})
   return results.map((r) => ({
@@ -222,6 +229,6 @@ export async function listCandidates(db: D1Database, weekId: string): Promise<Ca
     perishableIngredientIds: parseJson<number[]>(r.perishable_ids, []).map(String),
     totalMinutes: totalMinutes(r.prep_minutes, r.cook_minutes),
     lastPlanned: r.last_planned,
-    estCostCents: null,
+    estCostCents: r.est_cost,
   }))
 }

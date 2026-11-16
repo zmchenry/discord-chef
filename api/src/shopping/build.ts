@@ -4,6 +4,7 @@ import { aggregate, formatAmount, itemKey, type AggregatedItem, type AggregateSl
 import { sortItems } from '../../../shared/shopping/sort'
 import { splitTrips } from '../../../shared/shopping/trips'
 import type { ItemRow, ListRow } from './db'
+import { estimateWeekPrices } from './prices'
 
 // (Re)builds a week's shopping list(s) from its plan_slots. Planning's
 // "finish week" calls this too.
@@ -15,6 +16,8 @@ import type { ItemRow, ListRow } from './db'
 //
 // twoTrips switches between one list (trip null) and a weekend + midweek
 // pair. Absent, the week keeps its current split (one list for a new week).
+// waitUntil, when given, runs price estimates for the list without making
+// the caller wait on them.
 
 interface SlotRow {
   slot_id: number
@@ -34,9 +37,9 @@ interface SlotRow {
 const tripKey = (t: Trip | null) => t ?? ''
 
 export async function buildListForWeek(
-  env: Pick<Env, 'DB'>,
+  env: Pick<Env, 'DB' | 'ANTHROPIC_API_KEY'>,
   weekId: string,
-  opts: { twoTrips?: boolean } = {},
+  opts: { twoTrips?: boolean; waitUntil?: (p: Promise<unknown>) => void } = {},
   now = Date.now(),
 ): Promise<void> {
   const db = env.DB
@@ -232,4 +235,7 @@ export async function buildListForWeek(
     stmts.push(db.prepare('UPDATE shopping_lists SET generated_at = ?2 WHERE id = ?1').bind(list.id, now))
   }
   await db.batch(stmts)
+
+  // 5. Price estimates for anything new, after the response (see prices.ts).
+  opts.waitUntil?.(estimateWeekPrices(env, weekId))
 }

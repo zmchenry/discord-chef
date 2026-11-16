@@ -93,7 +93,40 @@ export async function askClaudeForRecipe(opts: {
   apiKey: string
   logEvent: string
 }): Promise<ScrapedRecipe | null> {
-  const { system, content, apiKey, logEvent } = opts
+  const parsed = await askClaudeJson<ScrapedRecipe & { found: boolean }>({
+    ...opts,
+    schema: RECIPE_SCHEMA,
+    who: 'The recipe reader',
+  })
+  if (!parsed?.found || !parsed.title?.trim() || (!parsed.ingredients?.length && !parsed.instructions?.length)) return null
+  return {
+    title: parsed.title,
+    description: parsed.description ?? null,
+    imageUrl: null,
+    servings: parsed.servings ?? null,
+    prepMinutes: parsed.prepMinutes ?? null,
+    cookMinutes: parsed.cookMinutes ?? null,
+    totalMinutes: parsed.totalMinutes ?? null,
+    ingredients: parsed.ingredients ?? [],
+    instructions: parsed.instructions ?? [],
+    categories: parsed.categories ?? [],
+  }
+}
+
+// One structured-output call to the Messages API at low effort: the reply
+// always matches `schema`. Used by the recipe readers above and the price
+// estimates (api/src/shopping/prices.ts). Throws ClaudeError on any failure,
+// worded with `who`; null when the model refuses.
+export async function askClaudeJson<T>(opts: {
+  system: string
+  content: string
+  schema: object
+  apiKey: string
+  logEvent: string
+  who?: string
+  maxTokens?: number
+}): Promise<T | null> {
+  const { system, content, schema, apiKey, logEvent, who = 'Claude', maxTokens = 16000 } = opts
   let res: Response
   try {
     res = await fetch(MESSAGES_URL, {
@@ -106,43 +139,28 @@ export async function askClaudeForRecipe(opts: {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 16000,
+        max_tokens: maxTokens,
         system,
-        output_config: { effort: 'low', format: { type: 'json_schema', schema: RECIPE_SCHEMA } },
+        output_config: { effort: 'low', format: { type: 'json_schema', schema } },
         messages: [{ role: 'user', content }],
       }),
     })
   } catch {
-    throw new ClaudeError('The recipe reader did not answer.')
+    throw new ClaudeError(`${who} did not answer.`)
   }
   if (!res.ok) {
     console.error(JSON.stringify({ event: logEvent, status: res.status, body: (await res.text()).slice(0, 500) }))
-    throw new ClaudeError('The recipe reader failed.')
+    throw new ClaudeError(`${who} failed.`)
   }
 
   const msg = (await res.json()) as MessagesResponse
   if (msg.stop_reason === 'refusal') return null
-  if (msg.stop_reason === 'max_tokens') throw new ClaudeError('The recipe was too long to read.')
+  if (msg.stop_reason === 'max_tokens') throw new ClaudeError(`${who} ran out of room.`)
   const out = msg.content?.find((b) => b.type === 'text')?.text
-  if (!out) throw new ClaudeError('The recipe reader returned nothing.')
-
-  let parsed: ScrapedRecipe & { found: boolean }
+  if (!out) throw new ClaudeError(`${who} returned nothing.`)
   try {
-    parsed = JSON.parse(out)
+    return JSON.parse(out) as T
   } catch {
-    throw new ClaudeError('The recipe reader returned something unreadable.')
-  }
-  if (!parsed.found || !parsed.title?.trim() || (!parsed.ingredients?.length && !parsed.instructions?.length)) return null
-  return {
-    title: parsed.title,
-    description: parsed.description ?? null,
-    imageUrl: null,
-    servings: parsed.servings ?? null,
-    prepMinutes: parsed.prepMinutes ?? null,
-    cookMinutes: parsed.cookMinutes ?? null,
-    totalMinutes: parsed.totalMinutes ?? null,
-    ingredients: parsed.ingredients ?? [],
-    instructions: parsed.instructions ?? [],
-    categories: parsed.categories ?? [],
+    throw new ClaudeError(`${who} returned something unreadable.`)
   }
 }

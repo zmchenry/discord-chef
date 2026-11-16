@@ -24,7 +24,7 @@ import {
   putSections,
   updateList,
 } from './db'
-import { setManualPrices } from './prices'
+import { estimateWeekPrices, setManualPrices, waitUntilFor } from './prices'
 
 // Shopping routes, mounted at the app root (index.ts adds the /api prefix).
 // Every write takes a JSON body or is PUT/PATCH/DELETE, per the CSRF note
@@ -49,7 +49,7 @@ const intParam = (s: string) => (/^\d+$/.test(s) ? Number(s) : null)
 shopping.post('/weeks/:start/shopping/generate', requireSession, validJson(generateShoppingInputSchema), async (c) => {
   const weekId = c.req.param('start')
   if (!validWeek(weekId)) return invalid(c, [{ path: ['start'], message: 'expected YYYY-MM-DD' }])
-  await buildListForWeek(c.env, weekId, c.req.valid('json'))
+  await buildListForWeek(c.env, weekId, { ...c.req.valid('json'), waitUntil: waitUntilFor(c) })
   return c.json(await getShoppingWeek(c.env.DB, weekId))
 })
 
@@ -77,6 +77,7 @@ shopping.post('/shopping/lists/:id/items', requireSession, validJson(addShopping
   if (!list) return notFound(c)
   const added = await addItem(c.env.DB, list.id, c.req.valid('json'))
   if (!added) return invalid(c, [{ path: ['ingredientId'], message: 'unknown ingredient' }])
+  waitUntilFor(c)(estimateWeekPrices(c.env, list.week_id))
   return c.json(await getShoppingWeek(c.env.DB, list.week_id), 201)
 })
 
