@@ -24,6 +24,8 @@ import {
   searchIngredients,
   updateRecipe,
 } from './db'
+import { runNotificationCron } from './notifications/cron'
+import { notificationRoutes } from './notifications/routes'
 import {
   localSessionProvider,
   makeAccessSessionProvider,
@@ -162,6 +164,8 @@ app.delete('/recipes/:id', requireSession, async (c) => {
   return found ? c.body(null, 204) : notFound(c)
 })
 
+app.route('/', notificationRoutes)
+
 // --- Catalog ---------------------------------------------------------------
 
 app.get('/ingredients', requireSession, validQuery(ingredientSearchQuerySchema), async (c) => {
@@ -194,13 +198,9 @@ export { app }
 export default {
   fetch: app.fetch,
 
-  // Cron Triggers (wrangler.jsonc `triggers.crons`). A no-op until phase 6
-  // adds the notification jobs (plan-the-week reminder, daily "what's
-  // cooking", list ready), which will be dispatched from here on
-  // controller.cron and the household-local time.
-  async scheduled(controller, _env, _ctx) {
-    console.log(
-      JSON.stringify({ event: 'scheduled', cron: controller.cron, at: new Date(controller.scheduledTime).toISOString() }),
-    )
+  // Cron Triggers (wrangler.jsonc `triggers.crons`, every 15 minutes): the
+  // plan-the-week and daily "what's cooking" notifications.
+  async scheduled(controller, env, _ctx) {
+    await runNotificationCron(env, controller.scheduledTime)
   },
 } satisfies ExportedHandler<Env>

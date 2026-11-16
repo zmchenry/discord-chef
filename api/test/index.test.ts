@@ -121,15 +121,13 @@ describe('unknown /api routes', () => {
 })
 
 describe('scheduled()', () => {
-  it('is a logging no-op for now', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-    await worker.scheduled(
-      { cron: '0 * * * *', scheduledTime: Date.UTC(2026, 10, 15), noRetry() {} } as ScheduledController,
-      prodEnv(testDb.db),
-      {} as ExecutionContext,
-    )
-    expect(log).toHaveBeenCalledOnce()
-    expect(log.mock.calls[0][0]).toContain('"cron":"0 * * * *"')
-    log.mockRestore()
+  it('runs the notification cron, which sends nothing with no subscribers', async () => {
+    await expect(
+      worker.scheduled(
+        { cron: '*/15 * * * *', scheduledTime: Date.UTC(2026, 10, 15), noRetry() {} } as ScheduledController,
+        prodEnv(testDb.db),
+        {} as ExecutionContext,
+      ),
+    ).resolves.toBeUndefined()
   })
 })
