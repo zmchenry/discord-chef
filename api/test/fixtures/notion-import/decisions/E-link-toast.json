@@ -1,0 +1,13 @@
+{
+ "item": "E-link-toast",
+ "group": "E",
+ "kind": "link",
+ "action": "reimport",
+ "note": "",
+ "payload": {
+  "recipe": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
+  "links": [
+   "https://example.com/toast"
+  ]
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "item": "C-dangling",
+ "group": "C",
+ "kind": "bulk",
+ "action": "drop",
+ "note": "",
+ "payload": {
+  "by_recipe": {
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1": [
+    "gone"
+   ]
+  }
+ }
+}

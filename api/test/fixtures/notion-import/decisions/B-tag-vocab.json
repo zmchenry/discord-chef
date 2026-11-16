@@ -1,0 +1,15 @@
+{
+ "item": "B-tag-vocab",
+ "group": "B",
+ "kind": "bulk",
+ "action": "accept",
+ "note": "",
+ "payload": {
+  "remove": [
+   "Order Out"
+  ],
+  "rename": {
+   "Leftovers": "Makes leftovers"
+  }
+ }
+}

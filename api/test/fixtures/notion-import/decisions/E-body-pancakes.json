@@ -1,0 +1,8 @@
+{
+ "item": "E-body-pancakes",
+ "group": "E",
+ "kind": "structured",
+ "action": "use_body",
+ "note": "",
+ "payload": {}
+}

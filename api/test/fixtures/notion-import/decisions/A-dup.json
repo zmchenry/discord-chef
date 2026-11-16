@@ -1,0 +1,14 @@
+{
+ "item": "A-dup",
+ "group": "A",
+ "kind": "recipe_merge",
+ "action": "merge",
+ "note": "",
+ "payload": {
+  "survivor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
+  "merge": [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2"
+  ],
+  "title": "Fixture Toast"
+ }
+}
