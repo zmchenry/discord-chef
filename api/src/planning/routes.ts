@@ -13,7 +13,6 @@ import {
   weekDates,
   weekdayOf,
   weekIdSchema,
-  type CalendarSettings,
   type RecommendationWire,
   type Suggestion,
   type WeekView,
@@ -22,12 +21,11 @@ import { mealSchema, type ErrorResponse } from '../../../shared/schema'
 import { requireSession, type AppEnv } from '../session'
 import { waitUntilFor } from '../shopping/prices'
 import { openClashes } from '../calendarRefresh/clashes'
-import { ICAL_KEY, setCalendarUrl, weekConstraints } from './calendar'
+import { calendarStatus, setCalendarUrl, weekConstraints } from './calendar'
 import { clearForReplan, type ReplanKeep,
   deleteSlot,
   ensureWeek,
   getHousehold,
-  getSetting,
   listCandidates,
   listSlots,
   listThemes,
@@ -89,7 +87,16 @@ export async function loadWeek(env: Env, weekId: string) {
     theme: themes.find((t) => t.weekday === weekdayOf(date)) ?? null,
     constraints: calendar.byDay[date] ?? [],
   }))
-  return { status, slots, days, candidates, calendarStatus: calendar.status, calendarFetchedAt: calendar.fetchedAt, planned: toPlannedSlots(weekId, slots) }
+  return {
+    status,
+    slots,
+    days,
+    candidates,
+    calendarStatus: calendar.status,
+    calendarFetchedAt: calendar.fetchedAt,
+    eventsByDay: calendar.eventsByDay,
+    planned: toPlannedSlots(weekId, slots),
+  }
 }
 
 async function weekView(env: Env, weekId: string): Promise<WeekView> {
@@ -99,7 +106,13 @@ async function weekView(env: Env, weekId: string): Promise<WeekView> {
   return {
     id: weekId,
     status: w.status,
-    days: w.days.map((d) => ({ date: d.date, weekday: weekdayOf(d.date), theme: d.theme, constraints: d.constraints })),
+    days: w.days.map((d) => ({
+      date: d.date,
+      weekday: weekdayOf(d.date),
+      theme: d.theme,
+      constraints: d.constraints,
+      events: w.eventsByDay[d.date] ?? [],
+    })),
     slots: w.slots,
     summary: {
       filled: summary.filled,
@@ -267,23 +280,11 @@ planning.put('/settings/themes', validJson(themesSettingsSchema), async (c) => {
   return c.json({ themes: await listThemes(c.env.DB) })
 })
 
-async function calendarSettings(db: D1Database): Promise<CalendarSettings> {
-  const url = await getSetting(db, ICAL_KEY)
-  if (!url) return { configured: false, host: null }
-  let host: string | null = null
-  try {
-    host = new URL(url).host
-  } catch {
-    // Stored before validation existed; report it as set anyway.
-  }
-  return { configured: true, host }
-}
-
-planning.get('/settings/calendar', async (c) => c.json(await calendarSettings(c.env.DB)))
+planning.get('/settings/calendar', async (c) => c.json(await calendarStatus(c.env.DB)))
 
 planning.put('/settings/calendar', validJson(calendarSettingsInputSchema), async (c) => {
   await setCalendarUrl(c.env.DB, c.req.valid('json').icalUrl)
-  return c.json(await calendarSettings(c.env.DB))
+  return c.json(await calendarStatus(c.env.DB))
 })
 
 planning.get('/settings/household', async (c) => c.json(await getHousehold(c.env.DB)))

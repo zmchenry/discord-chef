@@ -75,11 +75,21 @@ export const weekSlotSchema = z.object({
 })
 export type WeekSlot = z.infer<typeof weekSlotSchema>
 
+// One calendar event as a day card lists it: '3:30–6:30 Soccer', 'All day · Trip'.
+export const dayEventSchema = z.object({
+  title: z.string(),
+  time: z.string(),
+  allDay: z.boolean(),
+})
+export type DayEventWire = z.infer<typeof dayEventSchema>
+
 export const weekDaySchema = z.object({
   date: isoDateSchema,
   weekday: z.number().int().min(0).max(6),
   theme: themeSchema.nullable(),
   constraints: z.array(constraintSchema),
+  // Every event on the family calendar that day, not only those that became constraints.
+  events: z.array(dayEventSchema),
 })
 export type WeekDay = z.infer<typeof weekDaySchema>
 
@@ -158,8 +168,18 @@ export const recommendationsResponseSchema = z.object({ recommendations: z.array
 // Settings
 
 // GET/PUT /api/settings/calendar. The secret iCal address is write-only: it
-// is never sent back, only whether one is set and its host.
-export const calendarSettingsSchema = z.object({ configured: z.boolean(), host: z.string().nullable() })
+// is never sent back, only whether one is set, its host, and how the last
+// fetch went (read from the cache; these routes never fetch).
+export const calendarSettingsSchema = z.object({
+  configured: z.boolean(),
+  host: z.string().nullable(),
+  // When the cached copy was fetched (ms), null if never.
+  fetchedAt: z.number().nullable(),
+  // Events in the cached copy over the next four weeks.
+  eventCount: z.number().int().nullable(),
+  // Why the last fetch failed, in plain words; null when it worked.
+  error: z.string().nullable(),
+})
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>
 export const calendarSettingsInputSchema = z.object({
   icalUrl: z
