@@ -38,6 +38,7 @@ import {
   type AppEnv,
 } from './session'
 import { shoppingRoutes } from './shopping/routes'
+import { textImportRoutes } from './textImport/routes'
 
 // CSRF posture: session.ts reads Cf-Access-Jwt-Assertion OR the ambient
 // CF_Authorization cookie, and a cookie that rides along on every request to
@@ -168,6 +169,7 @@ app.delete('/recipes/:id', requireSession, async (c) => {
 })
 
 app.route('/', linkImportRoutes)
+app.route('/', textImportRoutes)
 app.route('/', notificationRoutes)
 app.route('/', planningRoutes)
 

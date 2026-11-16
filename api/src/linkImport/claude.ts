@@ -75,7 +75,25 @@ interface MessagesResponse {
 export class ClaudeError extends Error {}
 
 // Returns null when Claude says the page has no recipe.
-export async function extractWithClaude(pageText: string, pageUrl: string, apiKey: string): Promise<ScrapedRecipe | null> {
+export function extractWithClaude(pageText: string, pageUrl: string, apiKey: string): Promise<ScrapedRecipe | null> {
+  return askClaudeForRecipe({
+    system: SYSTEM,
+    content: `Page URL: ${pageUrl}\n\n<page>\n${pageText}\n</page>`,
+    apiKey,
+    logEvent: 'link_import_claude_error',
+  })
+}
+
+// One structured-output call that returns a recipe in RECIPE_SCHEMA. Shared
+// by the link import and the text import (api/src/textImport). Throws
+// ClaudeError on any failure; null when the model finds no recipe.
+export async function askClaudeForRecipe(opts: {
+  system: string
+  content: string
+  apiKey: string
+  logEvent: string
+}): Promise<ScrapedRecipe | null> {
+  const { system, content, apiKey, logEvent } = opts
   let res: Response
   try {
     res = await fetch(MESSAGES_URL, {
@@ -89,16 +107,16 @@ export async function extractWithClaude(pageText: string, pageUrl: string, apiKe
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 16000,
-        system: SYSTEM,
+        system,
         output_config: { effort: 'low', format: { type: 'json_schema', schema: RECIPE_SCHEMA } },
-        messages: [{ role: 'user', content: `Page URL: ${pageUrl}\n\n<page>\n${pageText}\n</page>` }],
+        messages: [{ role: 'user', content }],
       }),
     })
   } catch {
     throw new ClaudeError('The recipe reader did not answer.')
   }
   if (!res.ok) {
-    console.error(JSON.stringify({ event: 'link_import_claude_error', status: res.status, body: (await res.text()).slice(0, 500) }))
+    console.error(JSON.stringify({ event: logEvent, status: res.status, body: (await res.text()).slice(0, 500) }))
     throw new ClaudeError('The recipe reader failed.')
   }
 
