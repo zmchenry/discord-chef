@@ -1,5 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 
+import type { WeekView } from "../../shared/planningApi";
 import type { Recipe, RecipeSummary } from "../../shared/schema";
 
 // Answers /api/* in the browser so the smoke test needs no Worker or D1.
@@ -42,6 +43,29 @@ const summary: RecipeSummary = {
   ingredientCount: recipe.ingredients.length,
 };
 
+// A week with one locked dinner, one auto-picked lunch and a calendar chip.
+function weekView(start: string): WeekView {
+  const day = (i: number) => new Date(Date.parse(`${start}T00:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10);
+  const ref = { id: recipe.id, title: recipe.title, icon: recipe.icon, totalMinutes: 40 };
+  return {
+    id: start,
+    status: "draft",
+    days: Array.from({ length: 7 }, (_, i) => ({
+      date: day(i),
+      weekday: i,
+      theme: i === 2 ? { weekday: 2, label: "Taco Tuesday", tags: ["mexican"], meals: ["dinner"] } : null,
+      constraints: i === 2 ? [{ kind: "max_minutes", minutes: 25, meals: ["dinner"], reason: "Soccer 5:30–7 → 25 min or less" }] : [],
+    })),
+    slots: [
+      { date: day(2), meal: "dinner", kind: "recipe", recipeId: recipe.id, recipe: ref, source: "manual", locked: true },
+      { date: day(3), meal: "lunch", kind: "recipe", recipeId: recipe.id, recipe: ref, source: "auto", locked: false },
+      { date: day(6), meal: "dinner", kind: "eat_out", recipeId: null, recipe: null, source: "manual", locked: false },
+    ],
+    summary: { filled: 3, total: 21, estCostCents: null, shared: [] },
+    calendar: "ok",
+  };
+}
+
 export async function mockApi(page: Page) {
   await page.route("**/api/**", async (route: Route) => {
     const url = new URL(route.request().url());
@@ -53,6 +77,10 @@ export async function mockApi(page: Page) {
         return json({ recipes: [summary] });
       case url.pathname === `/api/recipes/${recipe.id}`:
         return json(recipe);
+      case /^\/api\/weeks\/[\d-]+$/.test(url.pathname):
+        return json(weekView(url.pathname.split("/").pop()!));
+      case /^\/api\/weeks\/[\d-]+\/recommendations$/.test(url.pathname):
+        return json({ recommendations: [] });
       default:
         return json({ error: "not mocked" }, 404);
     }

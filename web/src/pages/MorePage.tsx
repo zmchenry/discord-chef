@@ -1,4 +1,5 @@
 import { Card, PageHeader } from "../components/ui";
+import { SettingsLink } from "../features/planning/SettingsLink";
 import { useMe } from "../lib/queries";
 
 export function MorePage() {
@@ -13,6 +14,8 @@ export function MorePage() {
             {me.isPending ? "Checking…" : me.isError ? "Not signed in" : me.data.email}
           </p>
         </Card>
+        <SettingsLink to="/more/themes" title="Day themes" hint="Taco Tuesday and friends" />
+        <SettingsLink to="/more/calendar" title="Calendar" hint="Family calendar and household" />
         <Card className="p-4">
           <p className="m-0 text-muted">Stores, notifications and the Notion import arrive in later phases.</p>
         </Card>

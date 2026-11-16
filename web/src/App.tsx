@@ -1,9 +1,12 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
+import { CalendarPage } from "./features/planning/CalendarPage";
+import { ThemesPage } from "./features/planning/ThemesPage";
+import { WeekPage } from "./features/planning/WeekPage";
 import { MorePage } from "./pages/MorePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { ShopPage, WeekPage } from "./pages/Placeholder";
+import { ShopPage } from "./pages/Placeholder";
 import { RecipeDetailPage } from "./pages/RecipeDetailPage";
 import { RecipeEditPage } from "./pages/RecipeEditPage";
 import { RecipesPage } from "./pages/RecipesPage";
@@ -20,6 +23,8 @@ export default function App() {
         <Route path="recipes/:id/edit" element={<RecipeEditPage />} />
         <Route path="shop" element={<ShopPage />} />
         <Route path="more" element={<MorePage />} />
+        <Route path="more/themes" element={<ThemesPage />} />
+        <Route path="more/calendar" element={<CalendarPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
