@@ -84,6 +84,18 @@ Liz), installable on their Android phones.
   from staples you already have.
 
 - **Timezone**: America/New_York.
+- **Guided dinners** (2026-11-16): a step-by-step "Plan dinners" flow (one step per day,
+  Sun–Sat) for weeks you want to plan hands-on; auto-fill stays for "anything will do"
+  weeks. Breakfasts cycle through a rotation of about six favorites. Lunches are the
+  previous night's leftovers when that dinner makes leftovers, otherwise a lunch staple
+  (turkey sandwiches).
+- **Store pins** (2026-11-16): an ingredient can be pinned to one store (deli turkey →
+  Publix). The one-store-per-trip rule covers everything else. Pinned items are listed
+  as "Also at <Store>" and left out of the store-price comparison.
+- **Modals**: one `Modal` component with title, description, body, then an action row
+  (extra actions on the left, a gap, then secondary and primary; the two split the full
+  width when there are no extras). `MultiStepModal` adds a step header and handles
+  Back and Next.
 - **Palette rule** (2026-11-16): page backgrounds, cards, borders and text are true
   neutral greys in light and dark mode (max(R,G,B) − min(R,G,B) ≤ 3). The accent
   color appears only in buttons, accents, status colors and small component fills,
