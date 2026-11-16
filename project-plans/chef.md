@@ -1,9 +1,13 @@
 # Chef: plan
 
 ## Status
-Phase: 0 (decisions) and 1 (scaffold) in parallel
-Branch: `claude/discord-chef-cloudflare-kjwtd4` (the Discord bot stays on `main` until cutover)
-Last updated: 2026-11-15
+v0 live at chef.zmchenry.com (2026-11-16): recipes, link import, voice/text import, weekly
+planner (themes, calendar, suggestions), shopping list, notifications. 108 recipes and 7
+day themes loaded (Notion plus the recipe notebook).
+Branch: `claude/discord-chef-cloudflare-kjwtd4`. Deploys are started by hand from this
+branch: Workers Builds rejects adding a second branch to the trigger, so a push here does
+not deploy. Once v0 moves to `main`, pushes deploy automatically.
+Last updated: 2026-11-16
 
 ## Problem
 
@@ -195,7 +199,7 @@ notification_prefs user_id · kind · enabled · local_time
 | 2 | Recipes CRUD UI/API + Notion import script | API, UI and import agents in parallel against `shared/` |
 | 3 | Week plan: manual + auto-fill + recommendations | scorer (pure, unit-tested) and UI in parallel |
 | 4 | Shopping list generation + shopping view + store profiles | generator and view in parallel |
-| 5 | Import from link | independent |
+| 5 | Import from link, and from voice or plain text | independent |
 | 6 | Push notifications + cron | independent |
 | 7 (P2) | Walmart cart | research spike first: there is no public consumer cart API |
 
