@@ -70,15 +70,13 @@
   //
   // Declaring "routes" turns the workers.dev hostname OFF by default, and it
   // starts returning 404 with nothing said about it at deploy time.
-  // workers_dev stays on as a fallback for when DNS or the certificate is the
-  // thing that broke. Note that the workers.dev hostname is NOT behind the
-  // Access application on chef.zmchenry.com; the Worker's own JWT check is
-  // what keeps it closed (no Access JWT there, so every route but /api/health
-  // answers 401).
+  // workers_dev is off: that hostname is not behind the Access application,
+  // and without an Access JWT it can't serve anything useful anyway, so as a
+  // fallback it only adds a public entrance to the SPA shell.
   "routes": [
     { "pattern": "chef.zmchenry.com", "custom_domain": true }
   ],
-  "workers_dev": true,
+  "workers_dev": false,
 
   // Off deliberately. Each deployed version otherwise gets its own public
   // hostname, so the number of unauthenticated entrances grows with every
