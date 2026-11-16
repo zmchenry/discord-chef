@@ -108,6 +108,9 @@ it('refreshes a week’s prices, which feed the store totals and the planner cos
   const before = await json<ShoppingWeekResponse>(env, devRequest('POST', `/api/weeks/${WEEK}/shopping/generate`, {}))
   expect(before.lists[0].totals).toEqual([])
 
+  const plain = new Request('https://chef.zmchenry.com/api/prices/refresh', { method: 'POST', body: '{}' })
+  expect((await call(keyed, plain)).status).toBe(415)
+
   mockClaude()
   const refreshed = await json<PriceRefreshResponse>(keyed, devRequest('POST', '/api/prices/refresh', { weekId: WEEK }))
   expect(refreshed).toEqual({ weekId: WEEK, estimated: 6 })
