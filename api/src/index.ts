@@ -24,6 +24,8 @@ import {
   searchIngredients,
   updateRecipe,
 } from './db'
+import { calendarRefreshRoutes } from './calendarRefresh/routes'
+import { runCalendarCron } from './calendarRefresh/cron'
 import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
@@ -172,6 +174,7 @@ app.route('/', linkImportRoutes)
 app.route('/', textImportRoutes)
 app.route('/', notificationRoutes)
 app.route('/', planningRoutes)
+app.route('/', calendarRefreshRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 
@@ -208,8 +211,10 @@ export default {
   fetch: app.fetch,
 
   // Cron Triggers (wrangler.jsonc `triggers.crons`, every 15 minutes): the
-  // plan-the-week and daily "what's cooking" notifications.
+  // plan-the-week and daily "what's cooking" notifications, and once an hour
+  // the calendar refresh and clash check.
   async scheduled(controller, env, _ctx) {
     await runNotificationCron(env, controller.scheduledTime)
+    await runCalendarCron(env, controller.scheduledTime)
   },
 } satisfies ExportedHandler<Env>

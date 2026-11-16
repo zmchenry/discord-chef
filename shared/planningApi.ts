@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { clashSchema } from './calendarRefresh'
 import { addDays, HOME_TZ, weekdayOf } from './planning/calendar'
 import { isoDateSchema, mealSchema, slotKindSchema, slotSourceSchema, weekStatusSchema } from './schema'
 
@@ -99,6 +100,10 @@ export const weekViewSchema = z.object({
   summary: weekSummaryWireSchema,
   // 'none' when no calendar is configured, 'error' when it could not be read.
   calendar: z.enum(['none', 'ok', 'error']),
+  // When the cached calendar was last fetched (ms), null if never.
+  calendarFetchedAt: z.number().nullable(),
+  // Planned meals that clash with the calendar, minus the dismissed ones.
+  clashes: z.array(clashSchema),
 })
 export type WeekView = z.infer<typeof weekViewSchema>
 

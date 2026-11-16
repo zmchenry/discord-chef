@@ -63,6 +63,8 @@ function weekView(start: string): WeekView {
     ],
     summary: { filled: 3, total: 21, estCostCents: null, shared: [] },
     calendar: "ok",
+    calendarFetchedAt: Date.now() - 12 * 60_000,
+    clashes: [],
   };
 }
 
