@@ -199,8 +199,17 @@ notification_prefs user_id · kind · enabled · local_time
 | 6 | Push notifications + cron | independent |
 | 7 (P2) | Walmart cart | research spike first: there is no public consumer cart API |
 
-## Quality floor (inherited from fire-calculator)
+## Quality bar: 80/20
 
-44px touch targets, inputs of at least 16px, labelled controls, works one-handed at 360px
-wide, dark mode, and unit tests for every pure module (scorer, aggregator, ingredient
-parser, sorts) plus Playwright smoke tests on phone viewport.
+This is a personal app for two people, not a product. Build the simplest thing that
+works well on our phones, and skip production hardening that doesn't pay for itself.
+
+- **Tests**: a small set that catches real breakage. Use compact table tests for the
+  logic that is easy to get subtly wrong (the ingredient parser and naming rules, the
+  suggestion scorer, the shopping-list aggregator), one API round trip, one auth
+  allow/deny test, and one Playwright smoke test at phone size. No coverage targets and
+  no exhaustive edge cases.
+- **Code**: no speculative abstraction, config or error taxonomies. Fix problems when we
+  actually hit them.
+- **Kept regardless**: the security basics (Access, the Worker's JWT check, emails as
+  secrets in a public repo) and the phone basics (big tap targets, 16px inputs, dark mode).
