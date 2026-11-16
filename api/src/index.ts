@@ -27,6 +27,7 @@ import {
 import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
+import { planningRoutes } from './planning/routes'
 import {
   localSessionProvider,
   makeAccessSessionProvider,
@@ -167,6 +168,7 @@ app.delete('/recipes/:id', requireSession, async (c) => {
 
 app.route('/', linkImportRoutes)
 app.route('/', notificationRoutes)
+app.route('/', planningRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 

@@ -21,7 +21,7 @@ describe('migration 0001', () => {
     const { results } = await testDb.db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY name")
       .all<{ name: string }>()
-    // arrayContaining: later migrations add their own tables.
+    // Later migrations add their own tables, so this checks 0001's are all there.
     expect(results.map((r) => r.name)).toEqual(expect.arrayContaining([
       'check_events', 'ingredients', 'notification_prefs', 'plan_slots', 'push_subscriptions',
       'recipe_ingredients', 'recipe_tags', 'recipes', 'shopping_items', 'shopping_lists',

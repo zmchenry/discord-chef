@@ -196,7 +196,8 @@ export function scoreCandidates(args: {
 
   const byId = new Map(candidates.map((c) => [c.recipeId, c]))
   const others = weekRecipes(week, byId, { date, meal })
-  const inWeek = new Set(others.map((o) => o.recipe.recipeId))
+  const inWeek = new Map<string, number>()
+  for (const o of others) inWeek.set(o.recipe.recipeId, (inWeek.get(o.recipe.recipeId) ?? 0) + 1)
   const neighbours = others.filter(
     (o) => o.slot.meal === meal && Math.abs(daysBetween(o.slot.date, date)) === 1,
   )
@@ -232,7 +233,8 @@ export function scoreCandidates(args: {
       }
     }
 
-    if (inWeek.has(c.recipeId)) term(W.inWeek)
+    // Scales with repeats, so a recipe only fills a third or fourth slot when nothing else fits.
+    if (inWeek.has(c.recipeId)) term(W.inWeek * inWeek.get(c.recipeId)!)
     else if (c.lastPlanned === null) term(W.neverPlanned, 'New to the rotation')
     else {
       const weeks = Math.floor(daysBetween(c.lastPlanned, date) / 7)
