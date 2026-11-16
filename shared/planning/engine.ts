@@ -40,10 +40,19 @@ export interface PlannedSlot {
   source: 'manual' | 'auto' | 'suggested'
 }
 
+/** Why a candidate sits where it does: 'up' terms lift it, 'down' terms sink it. */
+export type ReasonTone = 'up' | 'down' | 'info'
+export interface Reason {
+  text: string
+  tone: ReasonTone
+}
+
 export interface ScoredCandidate {
   recipeId: string
   score: number
-  reasons: string[] // ≤ 3, user-facing, e.g. "Taco Tuesday", "20 min, fits Soccer"
+  reasons: string[] // ≤ 3 positive ones, user-facing, e.g. "Taco Tuesday", "20 min, fits Soccer"
+  why: Reason[] // ≤ 4, up and down, strongest first
+  theme: boolean // matches the day's theme for this meal
 }
 
 export interface Recommendation {
@@ -60,7 +69,9 @@ const VOCAB = new Set(TAGS.map((t) => t.value))
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // Score weights. Theme is strong but a slow recipe on a busy night or a
-// repeat within the week sinks below everything else.
+// repeat within the week sinks below everything else. Recency is explicit:
+// had in the 7 days before the slot sinks below anything not recent, 8-14
+// days sits between, and 4+ weeks (or never) gets a modest boost.
 const W = {
   theme: 50,
   fitsTime: 10,
@@ -69,10 +80,11 @@ const W = {
   grabAndGo: 15,
   slowBreakfast: -30,
   neverPlanned: 6,
-  notRecent: 8, // plus one per week, capped
-  recent: -20, // planned within the last week
-  fairlyRecent: -8, // within 3 weeks
-  inWeek: -100,
+  notRecent: 8, // 4+ weeks, plus one per week, capped
+  lastWeek: -250, // 1-7 days before the slot
+  twoWeeks: -125, // 8-14 days
+  fairlyRecent: -8, // 15-27 days
+  inWeek: -400, // per repeat in this same week
   shared: 3,
   sharedPerishable: 6,
   sameMainTagAdjacent: -12,
@@ -94,6 +106,7 @@ function seeded(s: string): number {
 const isFilled = (s: PlannedSlot) => s.kind !== 'recipe' || s.recipeId !== null
 const sameSlot = (s: PlannedSlot, date: ISODate, meal: Meal) => s.date === date && s.meal === meal
 const mainTags = (c: Candidate) => c.tags.filter((t) => !VOCAB.has(t))
+const tagLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1).replace(/-/g, ' ')
 
 function dayName(date: ISODate): string {
   return DAY_NAMES[weekdayOf(date)]!
@@ -212,10 +225,11 @@ export function scoreCandidates(args: {
     const reasons: Array<{ w: number; text: string }> = []
     const term = (w: number, text?: string) => {
       score += w
-      if (text && w > 0) reasons.push({ w, text })
+      if (text) reasons.push({ w, text })
     }
 
-    if (theme && c.tags.some((t) => theme.tags.includes(t))) term(W.theme, theme.label)
+    const themed = !!theme && c.tags.some((t) => theme.tags.includes(t))
+    if (themed) term(W.theme, theme!.label)
 
     for (const k of cons) {
       if (k.kind === 'max_minutes') {
@@ -225,37 +239,51 @@ export function scoreCandidates(args: {
           term(W.fitsTime, `${c.totalMinutes} min, fits ${label ?? 'a busy night'}`)
         } else if (c.totalMinutes === null && fast) {
           term(W.fitsTime, `Quick, fits ${label ?? 'a busy night'}`)
-        } else term(c.totalMinutes === null ? W.unknownTime : W.tooSlow)
+        } else if (c.totalMinutes === null) term(W.unknownTime, `Time unknown, ${label ?? 'busy night'}`)
+        else term(W.tooSlow, `Over the ${k.minutes}-min limit`)
       } else if (k.kind === 'grab_and_go') {
         const quick = c.tags.includes('fast') || (c.totalMinutes !== null && c.totalMinutes <= 10)
         if (quick) term(W.grabAndGo, 'Quick grab-and-go')
-        else if (c.totalMinutes === null || c.totalMinutes > 20) term(W.slowBreakfast)
+        else if (c.totalMinutes === null || c.totalMinutes > 20) term(W.slowBreakfast, 'Slow for a rushed morning')
       }
     }
 
     // Scales with repeats, so a recipe only fills a third or fourth slot when nothing else fits.
-    if (inWeek.has(c.recipeId)) term(W.inWeek * inWeek.get(c.recipeId)!)
-    else if (c.lastPlanned === null) term(W.neverPlanned, 'New to the rotation')
-    else {
-      const weeks = Math.floor(daysBetween(c.lastPlanned, date) / 7)
-      if (weeks >= 3) term(W.notRecent + Math.min(weeks, 10), `Not made in ${weeks} weeks`)
-      else if (daysBetween(c.lastPlanned, date) < 7) term(W.recent)
-      else term(W.fairlyRecent)
+    // Only plans before this slot count as recent (lastPlanned comes from
+    // earlier weeks; a later date is ignored).
+    const ago = c.lastPlanned === null ? null : daysBetween(c.lastPlanned, date)
+    if (inWeek.has(c.recipeId)) {
+      const on = others.find((o) => o.recipe.recipeId === c.recipeId)!.slot.date
+      term(W.inWeek * inWeek.get(c.recipeId)!, `Already on ${dayName(on)}`)
+    } else if (ago === null) term(W.neverPlanned, 'New to the rotation')
+    else if (ago > 0) {
+      const weeks = Math.floor(ago / 7)
+      if (ago <= 7) term(W.lastWeek, 'Had it last week')
+      else if (ago <= 14) term(W.twoWeeks, 'Had it 2 weeks ago')
+      else if (weeks < 4) term(W.fairlyRecent, `Had it ${weeks} weeks ago`)
+      else term(W.notRecent + Math.min(weeks, 10), `Not had in ${weeks} weeks`)
     }
 
     const ov = overlapWith(c, others, 'Uses')
     if (ov.points) term(ov.points, ov.reason ?? undefined)
 
     const mine = mainTags(c)
-    if (mine.length && neighbours.some((n) => mainTags(n.recipe).some((t) => mine.includes(t)))) {
-      term(W.sameMainTagAdjacent)
+    const clash = mine.length ? neighbours.find((n) => mainTags(n.recipe).some((t) => mine.includes(t))) : undefined
+    if (clash) {
+      const tag = mainTags(clash.recipe).find((t) => mine.includes(t))!
+      term(W.sameMainTagAdjacent, `${tagLabel(tag)} on ${dayName(clash.slot.date)} too`)
     }
 
-    reasons.sort((a, b) => b.w - a.w)
+    const up = reasons.filter((r) => r.w > 0).sort((a, b) => b.w - a.w)
     scored.push({
       recipeId: c.recipeId,
       score,
-      reasons: reasons.slice(0, 3).map((r) => r.text),
+      reasons: up.slice(0, 3).map((r) => r.text),
+      why: [...reasons]
+        .sort((a, b) => Math.abs(b.w) - Math.abs(a.w))
+        .slice(0, 4)
+        .map((r) => ({ text: r.text, tone: r.w > 0 ? 'up' : 'down' })),
+      theme: themed,
       tie: seeded(`${seed}|${date}|${meal}|${c.recipeId}`),
     })
   }

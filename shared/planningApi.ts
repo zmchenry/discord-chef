@@ -137,7 +137,13 @@ export const suggestionsQuerySchema = z.object({
   date: isoDateSchema,
   meal: mealSchema,
   q: z.string().trim().max(100).optional(),
+  // How many to return (default 20). The guided dinner flow asks for all.
+  limit: z.coerce.number().int().min(1).max(500).optional(),
 })
+
+// One "why it's here" term: 'up' lifted it, 'down' sank it. Strongest first.
+export const reasonSchema = z.object({ text: z.string(), tone: z.enum(['up', 'down', 'info']) })
+export type ReasonWire = z.infer<typeof reasonSchema>
 
 export const suggestionSchema = z.object({
   recipeId: z.string(),
@@ -145,7 +151,11 @@ export const suggestionSchema = z.object({
   icon: z.string().nullable(),
   totalMinutes: z.number().nullable(),
   score: z.number(),
+  // Positive reasons only (kept for older callers); `why` has both directions.
   reasons: z.array(z.string()),
+  why: z.array(reasonSchema).default([]),
+  // Matches the day's theme for this meal.
+  theme: z.boolean().default(false),
 })
 export type Suggestion = z.infer<typeof suggestionSchema>
 export const suggestionsResponseSchema = z.object({ suggestions: z.array(suggestionSchema) })

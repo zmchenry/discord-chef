@@ -211,7 +211,7 @@ planning.post('/weeks/:start/replan', jsonPost, async (c) => {
 
 planning.get('/weeks/:start/suggestions', validQuery(suggestionsQuerySchema), async (c) => {
   const weekId = weekParam(c)
-  const { date, meal, q } = c.req.valid('query')
+  const { date, meal, q, limit } = c.req.valid('query')
   if (!weekId || !weekDates(weekId).includes(date)) return notFound(c)
   const w = await loadWeek(c.env, weekId)
   const needle = q?.toLowerCase()
@@ -226,17 +226,23 @@ planning.get('/weeks/:start/suggestions', validQuery(suggestionsQuerySchema), as
     seed: weekId,
   })
   const byId = new Map(pool.map((x) => [x.recipeId, x]))
-  const toSuggestion = (id: string, score: number, reasons: string[]): Suggestion => {
+  const toSuggestion = (id: string, s?: Pick<Suggestion, 'score' | 'reasons' | 'why' | 'theme'>): Suggestion => {
     const r = byId.get(id)!
-    return { recipeId: id, title: r.title, icon: r.icon, totalMinutes: r.totalMinutes, score, reasons }
+    return {
+      recipeId: id,
+      title: r.title,
+      icon: r.icon,
+      totalMinutes: r.totalMinutes,
+      ...(s ?? { score: 0, reasons: [], why: [], theme: false }),
+    }
   }
-  const suggestions = scored.filter((s) => byId.has(s.recipeId)).map((s) => toSuggestion(s.recipeId, s.score, s.reasons))
+  const suggestions = scored.filter((s) => byId.has(s.recipeId)).map((s) => toSuggestion(s.recipeId, s))
   // A search always finds a title, even one the scorer ruled out for this meal.
   if (needle) {
     const seen = new Set(suggestions.map((s) => s.recipeId))
-    for (const x of pool) if (!seen.has(x.recipeId)) suggestions.push(toSuggestion(x.recipeId, 0, []))
+    for (const x of pool) if (!seen.has(x.recipeId)) suggestions.push(toSuggestion(x.recipeId))
   }
-  return c.json({ suggestions: suggestions.slice(0, 20) })
+  return c.json({ suggestions: suggestions.slice(0, limit ?? 20) })
 })
 
 planning.get('/weeks/:start/recommendations', async (c) => {

@@ -158,6 +158,30 @@ describe('scoreCandidates', () => {
     for (const x of r) expect(x.reasons.length).toBeLessThanOrEqual(3)
   })
 
+  it.each([
+    // [name, candidates, expected order]
+    ['last week sinks below everything not recent, even with the theme',
+      [cand('tacos-lw', { tags: ['dinner', 'mexican'], lastPlanned: '2026-11-12' }), cand('pasta')], ['pasta', 'tacos-lw']],
+    ['2 weeks ago sits above last week but below fresh ones',
+      [cand('a-lw', { lastPlanned: '2026-11-14' }), cand('b-2w', { lastPlanned: '2026-11-05' }), cand('c-fresh')], ['c-fresh', 'b-2w', 'a-lw']],
+    ['a theme match beats a non-theme match at equal recency',
+      [cand('pasta', { lastPlanned: '2026-11-05' }), cand('tacos', { tags: ['dinner', 'mexican'], lastPlanned: '2026-11-05' })], ['tacos', 'pasta']],
+    ['a date after the slot does not count as recent',
+      [cand('a', { lastPlanned: '2026-11-20', totalMinutes: 40 }), cand('b', { lastPlanned: '2026-11-12' })], ['a', 'b']],
+  ] as const)('recency: %s', (_name, candidates, order) => {
+    const r = rank([...candidates], day(TUE, { theme: taco }))
+    expect(r.map((x) => x.recipeId)).toEqual(order)
+  })
+
+  it('explains the position with up and down reasons, strongest first', () => {
+    const r = rank([cand('tacos', { tags: ['dinner', 'mexican'], lastPlanned: '2026-11-12' }), cand('pasta')], day(TUE, { theme: taco }))
+    expect(r.find((x) => x.recipeId === 'tacos')).toMatchObject({
+      theme: true,
+      why: [{ text: 'Had it last week', tone: 'down' }, { text: 'Taco Tuesday', tone: 'up' }],
+    })
+    expect(r.find((x) => x.recipeId === 'pasta')).toMatchObject({ theme: false, why: [{ text: 'Not had in 6 weeks', tone: 'up' }] })
+  })
+
   it('returns nothing for an eat_out day and breaks ties by seed only', () => {
     const out = day(TUE, { constraints: [{ kind: 'eat_out', meals: ['dinner'], reason: 'x' }] })
     expect(rank([cand('a')], out)).toEqual([])
