@@ -6,6 +6,8 @@ import type { Meal } from "../../../../shared/schema";
 import { addDays, sundayOf, todayIn, weekIdSchema, type WeekSlot, type WeekView } from "../../../../shared/planningApi";
 import { Button, PageHeader, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { CalendarFreshness } from "../calendarRefresh/CalendarFreshness";
+import { ClashBanner } from "../calendarRefresh/ClashBanner";
 import { DayCard } from "./DayCard";
 import { money, shortDate } from "./format";
 import { RecommendationCard } from "./RecommendationCard";
@@ -18,7 +20,8 @@ export function WeekPage() {
   const thisWeek = sundayOf(todayIn());
   const nextWeek = addDays(thisWeek, 7);
   const [params, setParams] = useSearchParams();
-  const requested = params.get("week");
+  // ?start= is what push notifications link to.
+  const requested = params.get("week") ?? params.get("start");
   const weekId = requested && weekIdSchema.safeParse(requested).success ? requested : thisWeek;
 
   const week = useWeek(weekId);
@@ -146,11 +149,13 @@ function WeekBody({
             <Check size={16} aria-hidden="true" /> Planned. You can still change anything.
           </p>
         )}
+        {week.calendar !== "none" && <CalendarFreshness fetchedAt={week.calendarFetchedAt} />}
         {week.calendar === "error" && (
           <p className="m-0 flex items-center gap-2 text-sm text-muted">
             <CalendarOff size={16} aria-hidden="true" /> Couldn't read the calendar this time.
           </p>
         )}
+        <ClashBanner weekId={week.id} clashes={week.clashes} onApply={onApply} onOpen={onOpen} />
         <RecommendationCard weekId={week.id} days={week.days} onAccept={onApply} />
         {summary.filled > 0 && (
           <button

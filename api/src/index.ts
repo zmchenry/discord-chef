@@ -24,6 +24,8 @@ import {
   searchIngredients,
   updateRecipe,
 } from './db'
+import { calendarRefreshRoutes } from './calendarRefresh/routes'
+import { runCalendarCron } from './calendarRefresh/cron'
 import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
@@ -95,6 +97,19 @@ const normalizedRecipe = (c: Context<AppEnv>, body: Parameters<typeof normalizeR
 app.get('/health', (c) => {
   const body: HealthResponse = { status: 'ok', now: new Date().toISOString() }
   return c.json(body)
+})
+
+// CSRF backstop for every state-changing route: browsers label each request
+// with Sec-Fetch-Site, and only the app's own pages ("same-origin") may write.
+// Requests without the header (older browsers, tests, curl) fall through to
+// the per-route JSON checks.
+app.use('*', async (c, next) => {
+  const site = c.req.header('Sec-Fetch-Site')
+  if (c.req.method !== 'GET' && c.req.method !== 'HEAD' && site && site !== 'same-origin') {
+    const body: ErrorResponse = { error: 'cross-site request refused' }
+    return c.json(body, 403)
+  }
+  await next()
 })
 
 // Applied after /health so that endpoint stays reachable with no session at
@@ -173,6 +188,7 @@ app.route('/', linkImportRoutes)
 app.route('/', textImportRoutes)
 app.route('/', notificationRoutes)
 app.route('/', planningRoutes)
+app.route('/', calendarRefreshRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 
@@ -210,8 +226,10 @@ export default {
   fetch: app.fetch,
 
   // Cron Triggers (wrangler.jsonc `triggers.crons`, every 15 minutes): the
-  // plan-the-week and daily "what's cooking" notifications.
+  // plan-the-week and daily "what's cooking" notifications, and once an hour
+  // the calendar refresh and clash check.
   async scheduled(controller, env, _ctx) {
     await runNotificationCron(env, controller.scheduledTime)
+    await runCalendarCron(env, controller.scheduledTime)
   },
 } satisfies ExportedHandler<Env>

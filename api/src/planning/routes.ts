@@ -21,6 +21,7 @@ import {
 import { mealSchema, type ErrorResponse } from '../../../shared/schema'
 import { requireSession, type AppEnv } from '../session'
 import { waitUntilFor } from '../shopping/prices'
+import { openClashes } from '../calendarRefresh/clashes'
 import { ICAL_KEY, setCalendarUrl, weekConstraints } from './calendar'
 import { clearForReplan, type ReplanKeep,
   deleteSlot,
@@ -71,8 +72,8 @@ function weekParam(c: Context): string | null {
   return parsed.success ? parsed.data : null
 }
 
-// Everything the engine needs for one week.
-async function loadWeek(env: Env, weekId: string) {
+// Everything the engine needs for one week. Also used by the calendar cron.
+export async function loadWeek(env: Env, weekId: string) {
   const db = env.DB
   const [status, slots, themes, household, candidates] = await Promise.all([
     ensureWeek(db, weekId),
@@ -88,7 +89,7 @@ async function loadWeek(env: Env, weekId: string) {
     theme: themes.find((t) => t.weekday === weekdayOf(date)) ?? null,
     constraints: calendar.byDay[date] ?? [],
   }))
-  return { status, slots, days, candidates, calendarStatus: calendar.status, planned: toPlannedSlots(weekId, slots) }
+  return { status, slots, days, candidates, calendarStatus: calendar.status, calendarFetchedAt: calendar.fetchedAt, planned: toPlannedSlots(weekId, slots) }
 }
 
 async function weekView(env: Env, weekId: string): Promise<WeekView> {
@@ -109,6 +110,8 @@ async function weekView(env: Env, weekId: string): Promise<WeekView> {
         .sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name)),
     },
     calendar: w.calendarStatus,
+    calendarFetchedAt: w.calendarFetchedAt,
+    clashes: await openClashes(env.DB, weekId, w),
   }
 }
 
