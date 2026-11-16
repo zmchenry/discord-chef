@@ -8,7 +8,7 @@ import { ThemesPage } from "./features/planning/ThemesPage";
 import { WeekPage } from "./features/planning/WeekPage";
 import { MorePage } from "./pages/MorePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { ShopPage } from "./pages/Placeholder";
+import { ShoppingPage } from "./features/shopping/ShoppingPage";
 import { RecipeDetailPage } from "./pages/RecipeDetailPage";
 import { RecipeEditPage } from "./pages/RecipeEditPage";
 import { RecipesPage } from "./pages/RecipesPage";
@@ -24,7 +24,7 @@ export default function App() {
         <Route path="recipes/import" element={<ImportPage />} />
         <Route path="recipes/:id" element={<RecipeDetailPage />} />
         <Route path="recipes/:id/edit" element={<RecipeEditPage />} />
-        <Route path="shop" element={<ShopPage />} />
+        <Route path="shop" element={<ShoppingPage />} />
         <Route path="more" element={<MorePage />} />
         <Route path="more/notifications" element={<NotificationsPage />} />
         <Route path="more/themes" element={<ThemesPage />} />

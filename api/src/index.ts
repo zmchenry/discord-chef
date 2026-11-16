@@ -37,6 +37,7 @@ import {
   sessionMiddleware,
   type AppEnv,
 } from './session'
+import { shoppingRoutes } from './shopping/routes'
 
 // CSRF posture: session.ts reads Cf-Access-Jwt-Assertion OR the ambient
 // CF_Authorization cookie, and a cookie that rides along on every request to
@@ -182,6 +183,8 @@ app.get('/stores', requireSession, async (c) => {
   const body: StoreListResponse = { stores: await listStores(c.env.DB) }
   return c.json(body)
 })
+
+app.route('/', shoppingRoutes)
 
 // Anything under /api that matched no route. Without this the static-asset
 // fallback would answer with index.html and a 200, which looks like a working
