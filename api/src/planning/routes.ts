@@ -26,7 +26,6 @@ import {
   ensureWeek,
   getHousehold,
   getSetting,
-  ingredientNames,
   listCandidates,
   listSlots,
   listThemes,
@@ -94,7 +93,7 @@ async function loadWeek(env: Env, weekId: string) {
 async function weekView(env: Env, weekId: string): Promise<WeekView> {
   const w = await loadWeek(env, weekId)
   const summary = weekSummary({ week: w.planned, candidates: w.candidates })
-  const names = await ingredientNames(env.DB, summary.shared.map((s) => s.ingredientId))
+  const names = new Map(w.candidates.flatMap((x) => Object.entries(x.ingredientNames ?? {})))
   return {
     id: weekId,
     status: w.status,

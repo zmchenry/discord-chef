@@ -183,8 +183,9 @@ export async function listCandidates(db: D1Database, weekId: string): Promise<Ca
     .prepare(
       `SELECT r.id, r.title, r.icon, r.prep_minutes, r.cook_minutes,
          (SELECT json_group_array(t.tag) FROM recipe_tags t WHERE t.recipe_id = r.id) AS tags,
-         (SELECT json_group_array(DISTINCT ri.ingredient_id) FROM recipe_ingredients ri
-            WHERE ri.recipe_id = r.id AND ri.ingredient_id IS NOT NULL) AS ingredient_ids,
+         (SELECT json_group_object(i.id, i.name) FROM (
+            SELECT DISTINCT i.id, i.name FROM recipe_ingredients ri JOIN ingredients i ON i.id = ri.ingredient_id
+            WHERE ri.recipe_id = r.id) i) AS ingredient_names,
          (SELECT json_group_array(DISTINCT ri.ingredient_id) FROM recipe_ingredients ri
             JOIN ingredients i ON i.id = ri.ingredient_id
             WHERE ri.recipe_id = r.id AND i.perishable = 1) AS perishable_ids,
@@ -200,28 +201,21 @@ export async function listCandidates(db: D1Database, weekId: string): Promise<Ca
       prep_minutes: number | null
       cook_minutes: number | null
       tags: string
-      ingredient_ids: string
+      ingredient_names: string
       perishable_ids: string
       last_planned: string | null
     }>()
+  const names = (r: { ingredient_names: string }) => parseJson<Record<string, string>>(r.ingredient_names, {})
   return results.map((r) => ({
     recipeId: r.id,
     title: r.title,
     icon: r.icon,
     tags: parseJson<string[]>(r.tags, []),
-    ingredientIds: parseJson<number[]>(r.ingredient_ids, []).map(String),
+    ingredientIds: Object.keys(names(r)),
+    ingredientNames: names(r),
     perishableIngredientIds: parseJson<number[]>(r.perishable_ids, []).map(String),
     totalMinutes: totalMinutes(r.prep_minutes, r.cook_minutes),
     lastPlanned: r.last_planned,
     estCostCents: null,
   }))
-}
-
-export async function ingredientNames(db: D1Database, ids: string[]): Promise<Map<string, string>> {
-  if (ids.length === 0) return new Map()
-  const { results } = await db
-    .prepare('SELECT id, name FROM ingredients WHERE id IN (SELECT value FROM json_each(?1))')
-    .bind(JSON.stringify(ids.map(Number)))
-    .all<{ id: number; name: string }>()
-  return new Map(results.map((r) => [String(r.id), r.name]))
 }

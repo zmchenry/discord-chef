@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { addDays, HOME_TZ, weekdayOf } from './planning/calendar'
 import { isoDateSchema, mealSchema, slotKindSchema, slotSourceSchema, weekStatusSchema } from './schema'
 
 // The wire contract for the weekly planning endpoints (api/src/planning).
@@ -9,22 +10,12 @@ import { isoDateSchema, mealSchema, slotKindSchema, slotSourceSchema, weekStatus
 // Dates. Weeks run Sunday to Saturday; a week's id is its Sunday. "Today" is
 // in the household timezone.
 
-export const HOUSEHOLD_TZ = 'America/New_York'
+export { addDays, weekdayOf }
 
-export function todayIn(tz = HOUSEHOLD_TZ, now = new Date()): string {
+export function todayIn(tz = HOME_TZ, now = new Date()): string {
   // en-CA formats as YYYY-MM-DD.
   return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
 }
-
-const utc = (iso: string) => new Date(`${iso}T00:00:00Z`)
-
-export function addDays(iso: string, n: number): string {
-  const d = utc(iso)
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().slice(0, 10)
-}
-
-export const weekdayOf = (iso: string): number => utc(iso).getUTCDay()
 
 export const sundayOf = (iso: string): string => addDays(iso, -weekdayOf(iso))
 
@@ -33,7 +24,7 @@ export const weekDates = (start: string): string[] => Array.from({ length: 7 }, 
 export const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 export const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
 
-export const weekIdSchema = isoDateSchema.refine((s) => !Number.isNaN(utc(s).getTime()) && weekdayOf(s) === 0, {
+export const weekIdSchema = isoDateSchema.refine((s) => !Number.isNaN(Date.parse(s)) && weekdayOf(s) === 0, {
   message: 'a week starts on a Sunday',
 })
 
