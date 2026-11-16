@@ -82,7 +82,7 @@ it('plans a week: get, set a slot, auto-fill, suggestions, finish', async () => 
   expect(done.status).toBe('planned')
 })
 
-it('replans a week: clears unlocked meals, keeps locked ones', async () => {
+it('replans a week: keeps your picks by default, or only locked ones', async () => {
   const tacos = await json<Recipe>(devRequest('POST', '/api/recipes', recipe('Tacos', ['dinner'], ['tortillas'])), 201)
   await json<Recipe>(devRequest('POST', '/api/recipes', recipe('Fajitas', ['dinner'], ['tortillas'])), 201)
   await json<WeekView>(devRequest('PUT', `/api/weeks/${WEEK}/slots/2026-11-24/dinner`, { kind: 'recipe', recipeId: tacos.id, locked: true }))
@@ -94,8 +94,23 @@ it('replans a week: clears unlocked meals, keeps locked ones', async () => {
   const filled = await json<WeekView>(post('autofill'))
   expect(filled.summary.filled).toBeGreaterThan(1)
 
-  const replanned = await json<WeekView>(post('replan'))
-  expect(replanned.slots).toEqual([expect.objectContaining({ date: '2026-11-24', meal: 'dinner', recipeId: tacos.id, locked: true })])
+  // A manual, unlocked pick: kept by a default replan, cleared by 'locked'.
+  await json<WeekView>(devRequest('PUT', `/api/weeks/${WEEK}/slots/2026-11-25/dinner`, { kind: 'eat_out' }))
+  const postBody = (path: string, body: unknown) =>
+    new Request(`https://chef.zmchenry.com/api/weeks/${WEEK}/${path}`, {
+      method: 'POST',
+      headers: { 'x-dev-user-id': 'zach@example.com', 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  const mine = await json<WeekView>(postBody('replan', { keep: 'mine' }))
+  expect(mine.slots.find((s) => s.date === '2026-11-25' && s.meal === 'dinner')).toMatchObject({ kind: 'eat_out', source: 'manual' })
+  expect(mine.slots.find((s) => s.date === '2026-11-24' && s.meal === 'dinner')).toMatchObject({ recipeId: tacos.id, locked: true })
+  expect(mine.summary.filled).toBe(filled.summary.filled) // auto picks redone, not dropped
+
+  // Clear an auto pick by hand, then replan keeping only locked: the manual eat-out goes too.
+  const lockedOnly = await json<WeekView>(postBody('replan', { keep: 'locked' }))
+  expect(lockedOnly.slots.find((s) => s.date === '2026-11-25' && s.meal === 'dinner')?.source).not.toBe('manual')
+  expect(lockedOnly.slots.find((s) => s.date === '2026-11-24' && s.meal === 'dinner')).toMatchObject({ recipeId: tacos.id, locked: true })
 })
 
 it('never returns the calendar address', async () => {
