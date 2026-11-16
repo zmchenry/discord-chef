@@ -4,6 +4,7 @@
     { "path": "./web/tsconfig.json" },
     { "path": "./tsconfig.node.json" },
     { "path": "./api/tsconfig.json" },
-    { "path": "./api/test/tsconfig.json" }
+    { "path": "./api/test/tsconfig.json" },
+    { "path": "./scripts/tsconfig.json" }
   ]
 }

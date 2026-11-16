@@ -1,0 +1,10 @@
+{
+ "item": "C-auto",
+ "group": "C",
+ "kind": "ingredient_table",
+ "action": "accept",
+ "note": "",
+ "payload": {
+  "section_overrides": {}
+ }
+}

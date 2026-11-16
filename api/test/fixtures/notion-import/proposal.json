@@ -1,0 +1,26 @@
+{"groups": [
+  {"id": "A", "items": [{"id": "A-dup", "kind": "recipe_merge", "title": "Fixture Toast"}]},
+  {"id": "B", "items": [
+    {"id": "B-marker", "kind": "recipe_marker", "title": "Fixture Diner"},
+    {"id": "B-tag-vocab", "kind": "bulk", "title": "Tag vocabulary"}
+  ]},
+  {"id": "C", "items": [
+    {"id": "C-auto", "kind": "ingredient_table", "title": "One-to-one", "rows": [
+      {"name": "butter", "raw": "1/2 cup Butter", "section": "Dairy", "perishable": true}
+    ]},
+    {"id": "C-bread", "kind": "ingredient", "title": "2 entries -> bread"},
+    {"id": "C-dangling", "kind": "bulk", "title": "Dead links"}
+  ]},
+  {"id": "D", "items": [
+    {"id": "D-towels", "kind": "staple", "title": "paper towels"},
+    {"id": "D-glitter", "kind": "staple", "title": "glitter"}
+  ]},
+  {"id": "E", "items": [
+    {"id": "E-body-pancakes", "kind": "structured", "title": "Fixture Pancakes", "steps": ["Mix.", "Cook; flip it's done."],
+     "ingredients": [
+       {"raw": "2 cups flour", "qty": 2, "unit": "cup", "ingredient": "flour", "note": null},
+       {"raw": "1 tablespoon butter, melted", "qty": 1, "unit": "tbsp", "ingredient": "butter", "note": null}
+     ]},
+    {"id": "E-link-toast", "kind": "link", "title": "Fixture Toast"}
+  ]}
+]}

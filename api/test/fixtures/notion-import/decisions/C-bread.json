@@ -1,0 +1,17 @@
+{
+ "item": "C-bread",
+ "group": "C",
+ "kind": "ingredient",
+ "action": "accept",
+ "note": "",
+ "payload": {
+  "name": "Wheat Bread",
+  "section": "Bakery",
+  "perishable": true,
+  "page_ids": [
+   "s1",
+   "s2"
+  ],
+  "amounts": []
+ }
+}

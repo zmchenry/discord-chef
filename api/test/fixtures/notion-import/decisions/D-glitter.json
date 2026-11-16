@@ -1,0 +1,15 @@
+{
+ "item": "D-glitter",
+ "group": "D",
+ "kind": "staple",
+ "action": "drop",
+ "note": "",
+ "payload": {
+  "name": "glitter",
+  "section": "Household",
+  "perishable": false,
+  "page_ids": [
+   "s5"
+  ]
+ }
+}

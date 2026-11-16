@@ -1,0 +1,15 @@
+{
+ "item": "D-towels",
+ "group": "D",
+ "kind": "staple",
+ "action": "staple",
+ "note": "",
+ "payload": {
+  "name": "paper towels",
+  "section": "Household",
+  "perishable": false,
+  "page_ids": [
+   "s4"
+  ]
+ }
+}
