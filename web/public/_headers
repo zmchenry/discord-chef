@@ -1,0 +1,11 @@
+# Cloudflare Workers static assets headers.
+# The service worker and manifest must never be served stale, or a deploy
+# can strand installed apps on an old version.
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json
+# Vite's hashed assets never change under the same name.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

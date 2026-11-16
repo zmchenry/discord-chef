@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "Chef",
+  "short_name": "Chef",
+  "description": "Meal planning for our kitchen: recipes, the week's plan and the shopping list.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#fbf5ec",
+  "background_color": "#fbf5ec",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "This week", "url": "/week" },
+    { "name": "Shopping list", "url": "/shop" }
+  ]
+}
