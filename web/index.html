@@ -8,9 +8,18 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <!-- Kept in step with --color-bg in src/styles/tokens.css. -->
-    <meta name="theme-color" content="#fbf5ec" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1a1310" media="(prefers-color-scheme: dark)" />
+    <!-- Defaults match Tomato Diner's --color-bg; src/lib/appearance.ts keeps them in step. -->
+    <meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Apply the saved palette and light/dark before first paint (no flash).
+      // Mirrors readAppearance/applyAppearance in src/lib/appearance.ts.
+      try {
+        var a = JSON.parse(localStorage.getItem("chef-appearance") || "null") || {};
+        if (a.palette === "sage") document.documentElement.dataset.palette = "sage";
+        if (a.mode === "light" || a.mode === "dark") document.documentElement.dataset.mode = a.mode;
+      } catch (e) {}
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -1,3 +1,4 @@
+import { AppearancePage } from "./features/appearance/AppearancePage";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="more/notifications" element={<NotificationsPage />} />
         <Route path="more/themes" element={<ThemesPage />} />
         <Route path="more/calendar" element={<CalendarPage />} />
+        <Route path="more/appearance" element={<AppearancePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

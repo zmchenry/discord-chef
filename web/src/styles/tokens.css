@@ -2,57 +2,134 @@
  * Design tokens: the ONLY place colours, fonts, radii and shadows are
  * defined. Components reach them through the Tailwind utilities mapped in
  * index.css (bg-bg, text-muted, rounded-card, font-display, ...), never as
- * raw values, so a new visual direction is a change to this file alone.
+ * raw values.
  *
- * Direction: "Terracotta Kitchen". Warm and cookbook-like: a serif display
- * face, soft rounded cards, sage green for anything that means "good to go".
+ * Two palettes, each with light and dark, chosen per device in More ->
+ * Appearance (web/src/lib/appearance.ts sets data-palette and data-mode on
+ * <html> before first paint; see index.html):
+ *   Tomato Diner (default)  tomato red buttons, navy ink. Lowest contrast 5.5:1 light, 6.3:1 dark.
+ *   Sage                    sage buttons, slate accents. Lowest contrast 5.4:1 light, 6.7:1 dark.
  *
- * Contrast (WCAG 2.x), checked for every text/background pair in use:
- *   light  text/bg 15.0  muted/bg 6.4  muted/surface-2 5.7  on-primary/primary 7.3
- *          primary/bg 6.7  accent/bg 5.8  accent/accent-soft 5.3  danger/bg 6.1
- *   dark   text/bg 15.3  muted/bg 8.8  muted/surface-2 7.0  on-primary/primary 8.6
- *          primary/bg 8.9  accent/bg 10.1  accent/accent-soft 8.0  danger/bg 6.6
+ * Rule: bg, surface, surface-2, border, text and muted are true neutral greys
+ * (max(R,G,B) - min(R,G,B) <= 3) in both modes. Colour appears only in
+ * primary, accent, danger and small component fills, never as a tint on the
+ * page. (Terracotta broke this and felt muddy.)
+ *
+ * data-mode: absent = follow the system, "light" or "dark" = forced.
  */
+
 :root {
-  color-scheme: light;
-
-  --color-bg: #fbf5ec;
-  --color-surface: #ffffff;
-  --color-surface-2: #f4e8d8;
-  --color-text: #2b1d14;
-  --color-muted: #6b5646;
-  --color-primary: #9a3412;
-  --color-on-primary: #ffffff;
-  --color-accent: #3d6a4c;
-  --color-accent-soft: #e5eee4;
-  --color-border: #e8d9c7;
-  --color-danger: #b42318;
-
   --radius: 16px;
   --radius-sm: 12px;
-  --shadow-card: 0 1px 2px rgb(75 40 20 / 0.06), 0 6px 18px rgb(75 40 20 / 0.08);
   --press-duration: 200ms;
 
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Swatches for the palette picker (More -> Appearance): each palette's
+     primary and accent, shown whichever palette is active. */
+  --swatch-diner-1: #c4122f;
+  --swatch-diner-2: #1d4f91;
+  --swatch-sage-1: #4a6652;
+  --swatch-sage-2: #3b6470;
 }
 
+/* Tomato Diner, light (the default) */
+:root {
+  color-scheme: light;
+  --color-bg: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-surface-2: #ebebeb;
+  --color-text: #141414;
+  --color-muted: #575757;
+  --color-primary: #c4122f;
+  --color-on-primary: #ffffff;
+  --color-accent: #1d4f91;
+  --color-accent-soft: #e8eef8;
+  --color-border: #e0e0e0;
+  --color-danger: #a4161a;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 18px rgb(0 0 0 / 0.06);
+}
+
+/* Sage, light */
+:root[data-palette="sage"] {
+  color-scheme: light;
+  --color-bg: #f4f4f4;
+  --color-surface: #fdfdfd;
+  --color-surface-2: #ebebeb;
+  --color-text: #262626;
+  --color-muted: #5c5c5c;
+  --color-primary: #4a6652;
+  --color-on-primary: #ffffff;
+  --color-accent: #3b6470;
+  --color-accent-soft: #e3ecee;
+  --color-border: #dedede;
+  --color-danger: #a8321f;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 18px rgb(0 0 0 / 0.06);
+}
+
+/* Dark, following the system unless light is forced */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-mode="light"]) {
     color-scheme: dark;
-
-    --color-bg: #1a1310;
-    --color-surface: #261c17;
-    --color-surface-2: #33261f;
-    --color-text: #f4e9dc;
-    --color-muted: #c3b0a0;
-    --color-primary: #f2a27c;
-    --color-on-primary: #2a1208;
-    --color-accent: #9dcba9;
-    --color-accent-soft: #1f2c24;
-    --color-border: #3d2f27;
-    --color-danger: #f97066;
-
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --color-bg: #111111;
+    --color-surface: #1a1a1a;
+    --color-surface-2: #262626;
+    --color-text: #f2f2f2;
+    --color-muted: #ababab;
+    --color-primary: #ff6b77;
+    --color-on-primary: #2a0a0e;
+    --color-accent: #8fb6ff;
+    --color-accent-soft: #17233a;
+    --color-border: #2f2f2f;
+    --color-danger: #ff8a80;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
   }
+  :root[data-palette="sage"]:not([data-mode="light"]) {
+    color-scheme: dark;
+    --color-bg: #141414;
+    --color-surface: #1c1c1c;
+    --color-surface-2: #272727;
+    --color-text: #ececec;
+    --color-muted: #adadad;
+    --color-primary: #a9c8b0;
+    --color-on-primary: #17251b;
+    --color-accent: #9cc3cd;
+    --color-accent-soft: #1b2a2e;
+    --color-border: #313131;
+    --color-danger: #f28b78;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+}
+
+/* Dark, forced */
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --color-bg: #111111;
+  --color-surface: #1a1a1a;
+  --color-surface-2: #262626;
+  --color-text: #f2f2f2;
+  --color-muted: #ababab;
+  --color-primary: #ff6b77;
+  --color-on-primary: #2a0a0e;
+  --color-accent: #8fb6ff;
+  --color-accent-soft: #17233a;
+  --color-border: #2f2f2f;
+  --color-danger: #ff8a80;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+:root[data-palette="sage"][data-mode="dark"] {
+  color-scheme: dark;
+  --color-bg: #141414;
+  --color-surface: #1c1c1c;
+  --color-surface-2: #272727;
+  --color-text: #ececec;
+  --color-muted: #adadad;
+  --color-primary: #a9c8b0;
+  --color-on-primary: #17251b;
+  --color-accent: #9cc3cd;
+  --color-accent-soft: #1b2a2e;
+  --color-border: #313131;
+  --color-danger: #f28b78;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
 }
