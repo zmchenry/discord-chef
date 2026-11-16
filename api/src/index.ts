@@ -26,6 +26,7 @@ import {
 } from './db'
 import { calendarRefreshRoutes } from './calendarRefresh/routes'
 import { runCalendarCron } from './calendarRefresh/cron'
+import { guidedDinnersRoutes } from './guidedDinners/routes'
 import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
@@ -188,6 +189,7 @@ app.route('/', linkImportRoutes)
 app.route('/', textImportRoutes)
 app.route('/', notificationRoutes)
 app.route('/', planningRoutes)
+app.route('/', guidedDinnersRoutes)
 app.route('/', calendarRefreshRoutes)
 
 // --- Catalog ---------------------------------------------------------------
