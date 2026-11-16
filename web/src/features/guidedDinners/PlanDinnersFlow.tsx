@@ -53,6 +53,7 @@ export function PlanDinnersFlow({ weekId, onClose }: { weekId: string; onClose: 
         weekId={weekId}
         day={day}
         slot={dinnerOf(day.date)}
+        error={slotMutation.isError ? `Couldn't save that: ${slotMutation.error.message}` : null}
         onPick={(set, recipe) => slotMutation.mutate([{ date: day.date, meal: "dinner", set, recipe }])}
       />
     ),

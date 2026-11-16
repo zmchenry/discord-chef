@@ -105,7 +105,8 @@ function seeded(s: string): number {
 
 const isFilled = (s: PlannedSlot) => s.kind !== 'recipe' || s.recipeId !== null
 const sameSlot = (s: PlannedSlot, date: ISODate, meal: Meal) => s.date === date && s.meal === meal
-const mainTags = (c: Candidate) => c.tags.filter((t) => !VOCAB.has(t))
+// 'makes-leftovers' says how much it makes, not what it is.
+const mainTags = (c: Candidate) => c.tags.filter((t) => !VOCAB.has(t) && t !== 'makes-leftovers')
 const tagLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1).replace(/-/g, ' ')
 
 function dayName(date: ISODate): string {

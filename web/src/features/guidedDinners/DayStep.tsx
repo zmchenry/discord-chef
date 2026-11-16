@@ -25,11 +25,13 @@ export function DayStep({
   weekId,
   day,
   slot,
+  error,
   onPick,
 }: {
   weekId: string;
   day: WeekDay;
   slot: WeekSlot | undefined;
+  error: string | null;
   onPick: (set: NonNullable<SlotChange["set"]>, recipe?: SlotChange["recipe"]) => void;
 }) {
   const [q, setQ] = useState("");
@@ -52,6 +54,11 @@ export function DayStep({
 
   return (
     <div className="grid gap-3">
+      {error && (
+        <p role="alert" className="m-0 font-semibold text-danger">
+          {error}
+        </p>
+      )}
       {slot && (
         <Card className="grid gap-1 p-3">
           <div className="flex items-center gap-3">

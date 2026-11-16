@@ -49,7 +49,7 @@ export function BreakfastLunchPage() {
         )
       ) : (
         <form
-          className="grid gap-4 px-4 pb-6 lg:max-w-2xl"
+          className="grid grid-cols-1 gap-4 px-4 pb-6 lg:max-w-2xl"
           onSubmit={(e) => {
             e.preventDefault();
             save.mutate();
@@ -119,7 +119,7 @@ function OrderedPicker({
   const options = (recipes.data ?? []).filter((r) => !items.some((x) => x.id === r.id)).slice(0, 6);
 
   return (
-    <Card className="grid gap-3 p-4">
+    <Card className="grid grid-cols-1 gap-3 p-4">
       <div>
         <h2 className="m-0 text-lg">{title}</h2>
         <p className="m-0 text-sm text-muted">{hint}</p>
@@ -127,7 +127,7 @@ function OrderedPicker({
       {items.length === 0 ? (
         <p className="m-0 text-sm text-muted">Nothing yet. Add one below.</p>
       ) : (
-        <ol className="m-0 grid list-none gap-1.5 p-0">
+        <ol className="m-0 grid list-none grid-cols-1 gap-1.5 p-0">
           {items.map((r, i) => (
             <li key={r.id} className="flex items-center gap-1 rounded-sm bg-surface-2 py-0.5 pl-3">
               <span className="w-5 shrink-0 text-sm font-bold text-muted">{i + 1}</span>
@@ -151,7 +151,7 @@ function OrderedPicker({
       {full ? (
         <p className="m-0 text-sm text-muted">That's the most it holds. Remove one to add another.</p>
       ) : (
-        <div className="grid gap-1.5">
+        <div className="grid grid-cols-1 gap-1.5">
           <label className="flex min-h-11 items-center gap-2 rounded-sm border border-border bg-surface px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary">
             <Search size={18} className="shrink-0 text-muted" aria-hidden="true" />
             <input
@@ -163,7 +163,7 @@ function OrderedPicker({
               className="min-h-11 w-full border-0 bg-transparent text-base text-text outline-none placeholder:text-muted"
             />
           </label>
-          <ul className="m-0 grid list-none gap-1 p-0">
+          <ul className="m-0 grid list-none grid-cols-1 gap-1 p-0">
             {options.map((r) => (
               <li key={r.id}>
                 <button
