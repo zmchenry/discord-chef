@@ -117,6 +117,7 @@ export const useAddItem = (weekId: string) =>
           manualRank: rank,
           checkedAt: null,
           checkedBy: null,
+          storeId: null,
         };
         return { ...l, items: [...l.items, item] };
       }),
