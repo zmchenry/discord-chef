@@ -55,6 +55,7 @@ function weekView(start: string): WeekView {
       weekday: i,
       theme: i === 2 ? { weekday: 2, label: "Taco Tuesday", tags: ["mexican"], meals: ["dinner"] } : null,
       constraints: i === 2 ? [{ kind: "max_minutes", minutes: 25, meals: ["dinner"], reason: "Soccer 5:30–7 → 25 min or less" }] : [],
+      events: i === 2 ? [{ title: "Soccer", time: "5:30–7", allDay: false }] : [],
     })),
     slots: [
       { date: day(2), meal: "dinner", kind: "recipe", recipeId: recipe.id, recipe: ref, source: "manual", locked: true },

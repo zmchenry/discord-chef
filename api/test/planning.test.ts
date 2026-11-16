@@ -117,6 +117,6 @@ it('never returns the calendar address', async () => {
   const saved = await json<CalendarSettings>(
     devRequest('PUT', '/api/settings/calendar', { icalUrl: 'webcal://calendar.example.com/secret/basic.ics' }),
   )
-  expect(saved).toEqual({ configured: true, host: 'calendar.example.com' })
+  expect(saved).toEqual({ configured: true, host: 'calendar.example.com', fetchedAt: null, eventCount: null, error: null })
   expect(await json(devRequest('GET', '/api/settings/household'))).toEqual({ people: ['Zach', 'Liz'] })
 })

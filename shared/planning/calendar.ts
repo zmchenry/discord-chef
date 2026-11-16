@@ -471,3 +471,31 @@ function mergeConstraints(list: Constraint[]): Constraint[] {
   const out = new Set(merged.filter((c) => c.kind === 'eat_out').flatMap((c) => c.meals))
   return merged.filter((c) => c.kind !== 'max_minutes' || !c.meals.every((m) => out.has(m)))
 }
+
+// ---------------------------------------------------------------------------
+// Events → what the day cards list
+
+export interface DayEvent {
+  title: string
+  time: string // '3:30–6:30', '7' for an instant, or 'All day'
+  allDay: boolean
+}
+
+/** Every event, listed on the days it touches: an all-day event on each of its
+ *  days, a timed one on the day it starts (home time). Keeps parseIcs's order. */
+export function eventsByDay(events: CalEvent[], days: ISODate[]): Record<ISODate, DayEvent[]> {
+  const out: Record<ISODate, DayEvent[]> = {}
+  for (const d of days) out[d] = []
+  for (const ev of events) {
+    const title = ev.title.trim() || 'Busy'
+    if (ev.allDay) {
+      for (let d = ev.start; d < ev.end; d = addDays(d, 1)) out[d]?.push({ title, time: 'All day', allDay: true })
+      continue
+    }
+    const s = wallTime(Date.parse(ev.start), HOME_TZ)
+    const e = wallTime(Date.parse(ev.end), HOME_TZ)
+    const time = ev.start === ev.end ? clock(s.h, s.m) : `${clock(s.h, s.m)}–${clock(e.h, e.m)}`
+    out[s.date]?.push({ title, time, allDay: false })
+  }
+  return out
+}

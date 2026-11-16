@@ -1,7 +1,9 @@
 import { Ban, CalendarClock, Lock, LockOpen, Plus, Repeat, Tag, Utensils, type LucideIcon } from "lucide-react";
 
+import { useState } from "react";
+
 import { MEALS, type Meal, type SlotKind } from "../../../../shared/schema";
-import type { WeekDay, WeekSlot } from "../../../../shared/planningApi";
+import type { DayEventWire, WeekDay, WeekSlot } from "../../../../shared/planningApi";
 import { Card } from "../../components/ui";
 import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
@@ -37,6 +39,7 @@ export function DayCard({
           </span>
         )}
       </div>
+      <DayEvents events={day.events} />
       {day.constraints.length > 0 && (
         <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0 px-1 pb-2">
           {day.constraints.map((c, i) => (
@@ -62,6 +65,39 @@ export function DayCard({
         ))}
       </div>
     </Card>
+  );
+}
+
+const EVENTS_SHOWN = 4;
+
+// Everything on the calendar that day, in small muted text: "3:30–6:30 Soccer",
+// "All day · Trip". Four at most, then "+N more".
+function DayEvents({ events }: { events: DayEventWire[] }) {
+  const [open, setOpen] = useState(false);
+  if (events.length === 0) return null;
+  const hidden = events.length - EVENTS_SHOWN;
+  const shown = open ? events : events.slice(0, EVENTS_SHOWN);
+  return (
+    <div className="px-1 pb-2 text-sm text-muted">
+      <ul className="m-0 grid list-none gap-0.5 p-0">
+        {shown.map((ev, i) => (
+          <li key={i} className="truncate">
+            <span className="font-semibold tabular-nums">{ev.time}</span>
+            {ev.allDay ? " · " : " "}
+            {ev.title}
+          </li>
+        ))}
+      </ul>
+      {shown.length < events.length && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="pressable -my-2 inline-flex min-h-11 items-center bg-transparent p-0 font-semibold text-primary"
+        >
+          +{hidden} more
+        </button>
+      )}
+    </div>
   );
 }
 
