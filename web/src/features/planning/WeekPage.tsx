@@ -83,11 +83,41 @@ export function WeekPage() {
     return <ReviewView week={week.data} onBack={() => setReviewing(false)} />;
   }
 
+  const primaryButton = (
+            plan && (
+              <Button
+                className="w-full lg:w-auto lg:px-6"
+                onClick={() => run(plan.primary)}
+                disabled={plan.primary === "autofill" && autofill.isPending}
+              >
+                {plan.primary === "autofill" ? (
+                  <>
+                    <Sparkles size={18} aria-hidden="true" />
+                    {autofill.isPending ? "Filling…" : autofillLabel(plan.open)}
+                  </>
+                ) : plan.primary === "review" ? (
+                  "Finish week"
+                ) : (
+                  <>
+                    <ShoppingBasket size={18} aria-hidden="true" />
+                    Shopping list
+                  </>
+                )}
+              </Button>
+            )
+  );
+
   return (
     <>
       <PageHeader
         title={weekId === nextWeek ? "Next week" : weekId === thisWeek ? "This week" : `Week of ${shortDate(weekId)}`}
-        action={menu.length > 0 && <OverflowMenu items={menu} title="Week" />}
+        action={
+          <div className="flex items-center gap-2">
+            {/* Desktop: the primary action lives in the header; phones use the sticky bar. */}
+            {primaryButton && <div className="hidden lg:block">{primaryButton}</div>}
+            {menu.length > 0 && <OverflowMenu items={menu} title="Week" />}
+          </div>
+        }
       />
       <div className="px-4 pb-3">
         <div role="group" aria-label="Week" className="grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1 lg:max-w-md">
@@ -123,29 +153,7 @@ export function WeekPage() {
           week={week.data}
           onOpen={(date, meal) => setOpen({ date, meal })}
           onApply={apply}
-          primary={
-            plan && (
-              <Button
-                className="w-full lg:w-auto lg:px-8"
-                onClick={() => run(plan.primary)}
-                disabled={plan.primary === "autofill" && autofill.isPending}
-              >
-                {plan.primary === "autofill" ? (
-                  <>
-                    <Sparkles size={18} aria-hidden="true" />
-                    {autofill.isPending ? "Filling…" : autofillLabel(plan.open)}
-                  </>
-                ) : plan.primary === "review" ? (
-                  "Finish week"
-                ) : (
-                  <>
-                    <ShoppingBasket size={18} aria-hidden="true" />
-                    Shopping list
-                  </>
-                )}
-              </Button>
-            )
-          }
+          primary={primaryButton}
         />
       )}
 
@@ -229,7 +237,7 @@ function WeekBody({
           />
         ))}
       </div>
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-[5] mt-3 flex bg-bg px-4 py-3 lg:bottom-0 lg:justify-end lg:py-4">
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-[5] mt-3 flex bg-bg px-4 py-3 lg:hidden">
         {primary}
       </div>
     </>
