@@ -82,6 +82,22 @@ it('plans a week: get, set a slot, auto-fill, suggestions, finish', async () => 
   expect(done.status).toBe('planned')
 })
 
+it('replans a week: clears unlocked meals, keeps locked ones', async () => {
+  const tacos = await json<Recipe>(devRequest('POST', '/api/recipes', recipe('Tacos', ['dinner'], ['tortillas'])), 201)
+  await json<Recipe>(devRequest('POST', '/api/recipes', recipe('Fajitas', ['dinner'], ['tortillas'])), 201)
+  await json<WeekView>(devRequest('PUT', `/api/weeks/${WEEK}/slots/2026-11-24/dinner`, { kind: 'recipe', recipeId: tacos.id, locked: true }))
+  const post = (path: string) =>
+    new Request(`https://chef.zmchenry.com/api/weeks/${WEEK}/${path}`, {
+      method: 'POST',
+      headers: { 'x-dev-user-id': 'zach@example.com', 'content-type': 'application/json' },
+    })
+  const filled = await json<WeekView>(post('autofill'))
+  expect(filled.summary.filled).toBeGreaterThan(1)
+
+  const replanned = await json<WeekView>(post('replan'))
+  expect(replanned.slots).toEqual([expect.objectContaining({ date: '2026-11-24', meal: 'dinner', recipeId: tacos.id, locked: true })])
+})
+
 it('never returns the calendar address', async () => {
   const saved = await json<CalendarSettings>(
     devRequest('PUT', '/api/settings/calendar', { icalUrl: 'webcal://calendar.example.com/secret/basic.ics' }),

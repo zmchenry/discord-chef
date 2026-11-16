@@ -94,7 +94,7 @@ export function useSlotMutation(weekId: string) {
   });
 }
 
-export function useWeekAction(weekId: string, action: "autofill" | "finish") {
+export function useWeekAction(weekId: string, action: "autofill" | "finish" | "replan") {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => planningApi[action](weekId),

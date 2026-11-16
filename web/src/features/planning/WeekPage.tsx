@@ -1,4 +1,4 @@
-import { CalendarOff, Check, Sparkles } from "lucide-react";
+import { RotateCcw, CalendarOff, Check, Sparkles } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -25,6 +25,7 @@ export function WeekPage() {
   const [reviewing, setReviewing] = useState(false);
   const slotMutation = useSlotMutation(weekId);
   const autofill = useWeekAction(weekId, "autofill");
+  const replan = useWeekAction(weekId, "replan");
   const apply = useCallback((changes: SlotChange[]) => slotMutation.mutate(changes), [slotMutation]);
   const close = useCallback(() => setOpen(null), []);
 
@@ -77,6 +78,10 @@ export function WeekPage() {
           onOpen={(date, meal) => setOpen({ date, meal })}
           onApply={apply}
           onAutofill={() => autofill.mutate()}
+          onReplan={() => {
+            if (window.confirm("Clear every meal you haven't locked? Lock the ones you want to keep first.")) replan.mutate();
+          }}
+          replanning={replan.isPending}
           autofilling={autofill.isPending}
           onReview={() => setReviewing(true)}
         />
@@ -103,6 +108,8 @@ function WeekBody({
   onApply,
   onAutofill,
   autofilling,
+  onReplan,
+  replanning,
   onReview,
 }: {
   week: WeekView;
@@ -110,6 +117,8 @@ function WeekBody({
   onApply: (changes: SlotChange[]) => void;
   onAutofill: () => void;
   autofilling: boolean;
+  onReplan: () => void;
+  replanning: boolean;
   onReview: () => void;
 }) {
   const toggleLock = (slot: WeekSlot) =>
@@ -134,6 +143,17 @@ function WeekBody({
           </p>
         )}
         <RecommendationCard weekId={week.id} days={week.days} onAccept={onApply} />
+        {summary.filled > 0 && (
+          <button
+            type="button"
+            onClick={onReplan}
+            disabled={replanning}
+            className="pressable flex min-h-11 items-center gap-2 self-start rounded-full px-1 text-sm font-semibold text-primary"
+          >
+            <RotateCcw size={16} aria-hidden="true" />
+            {replanning ? "Clearing…" : "Replan week (keeps locked meals)"}
+          </button>
+        )}
         {week.days.map((day) => (
           <DayCard
             key={day.date}

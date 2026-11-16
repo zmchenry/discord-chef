@@ -50,6 +50,7 @@ export const planningApi = {
     request(weekViewSchema, slotPath(week, date, meal), { method: "DELETE" }),
   autofill: (week: string) => request(weekViewSchema, `/weeks/${week}/autofill`, { method: "POST" }),
   finish: (week: string) => request(weekViewSchema, `/weeks/${week}/finish`, { method: "POST" }),
+  replan: (week: string) => request(weekViewSchema, `/weeks/${week}/replan`, { method: "POST" }),
   suggestions: (week: string, date: string, meal: Meal, q: string, signal?: AbortSignal) => {
     const sp = new URLSearchParams({ date, meal });
     if (q.trim()) sp.set("q", q.trim());

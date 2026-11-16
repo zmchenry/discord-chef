@@ -21,7 +21,7 @@ import {
 import { mealSchema, type ErrorResponse } from '../../../shared/schema'
 import { requireSession, type AppEnv } from '../session'
 import { ICAL_KEY, setCalendarUrl, weekConstraints } from './calendar'
-import {
+import { clearUnlockedSlots,
   deleteSlot,
   ensureWeek,
   getHousehold,
@@ -172,6 +172,14 @@ planning.post('/weeks/:start/autofill', jsonPost, async (c) => {
       }),
     )
   if (writes.length) await c.env.DB.batch(writes)
+  return c.json(await weekView(c.env, weekId))
+})
+
+planning.post('/weeks/:start/replan', jsonPost, async (c) => {
+  const weekId = weekParam(c)
+  if (!weekId) return notFound(c)
+  await ensureWeek(c.env.DB, weekId)
+  await clearUnlockedSlots(c.env.DB, weekId)
   return c.json(await weekView(c.env, weekId))
 })
 
