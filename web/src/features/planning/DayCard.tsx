@@ -3,6 +3,7 @@ import { Ban, CalendarClock, Lock, LockOpen, Plus, Repeat, Tag, Utensils, type L
 import { MEALS, type Meal, type SlotKind } from "../../../../shared/schema";
 import type { WeekDay, WeekSlot } from "../../../../shared/planningApi";
 import { Card } from "../../components/ui";
+import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
 import { dayName, MARKER_LABEL, MEAL_LABEL, shortDate } from "./format";
 
@@ -44,7 +45,7 @@ export function DayCard({
               className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-sm font-semibold text-accent"
             >
               <CalendarClock size={14} aria-hidden="true" />
-              {c.reason}
+              <ReasonText text={c.reason} />
             </li>
           ))}
         </ul>

@@ -2,6 +2,7 @@ import { Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import type { WeekDay } from "../../../../shared/planningApi";
+import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
 import { dayName, MEAL_LABEL, money, pill } from "./format";
 import { useRecommendations, type SlotChange } from "./queries";
@@ -40,7 +41,7 @@ export function RecommendationCard({
             Add <strong>{rec.title}</strong> for {where}.
           </>
         )}{" "}
-        {rec.reason}
+        <ReasonText text={rec.reason} />
         {rec.savesCents ? ` Saves about ${money(rec.savesCents)}.` : ""}
       </p>
       <div className="mt-3 flex gap-2">

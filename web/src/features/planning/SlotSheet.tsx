@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useRef, useState } from "react";
 import type { Meal, SlotKind } from "../../../../shared/schema";
 import type { WeekDay, WeekSlot } from "../../../../shared/planningApi";
 import { Button, StateMessage } from "../../components/ui";
+import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
 import { dayName, MARKER_LABEL, MEAL_LABEL, pill, shortDate } from "./format";
 import { useSuggestions, type SlotChange } from "./queries";
@@ -195,7 +196,7 @@ export function SlotSheet({
                         <ul className="m-0 mt-1.5 flex list-none flex-wrap gap-1.5 p-0">
                           {s.reasons.map((r) => (
                             <li key={r} className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
-                              {r}
+                              <ReasonText text={r} />
                             </li>
                           ))}
                         </ul>

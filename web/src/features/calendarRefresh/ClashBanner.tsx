@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import type { ClashWire } from "../../../../shared/calendarRefresh";
 import type { Meal } from "../../../../shared/schema";
+import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
 import { dayName, pill } from "../planning/format";
 import type { SlotChange } from "../planning/queries";
@@ -60,7 +61,9 @@ export function ClashBanner({
                 <Lock size={14} aria-label="locked" className="ml-1 inline-block align-[-2px] text-muted" />
               )}
             </p>
-            <p className="m-0 text-sm text-muted">{c.reason}</p>
+            <p className="m-0 text-sm text-muted">
+              <ReasonText text={c.reason} />
+            </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <button type="button" className={cx(pill, "bg-primary text-on-primary")} onClick={() => fix(c)}>
                 {!c.fix ? "Pick another" : c.fix.kind === "swap" ? `Swap for ${c.fix.title}` : "Mark eat out"}
