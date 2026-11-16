@@ -1,9 +1,11 @@
 import type { ImportUrlResponse } from "../../../../shared/linkImport";
 import type { RecipeInput } from "../../../../shared/schema";
+import type { ImportTextResponse } from "../../../../shared/textImport";
 import type { RecipeFormValues } from "../../lib/recipeForm";
 
-// What the import page hands to /recipes/new in router state.
-export type ImportedDraft = ImportUrlResponse;
+// What an import page hands to the recipe form in router state. `via:
+// "text"` is the voice/text import (features/textImport), else a link.
+export type ImportedDraft = (ImportUrlResponse | ImportTextResponse) & { via?: "link" | "text" };
 
 export function importedDraftFrom(state: unknown): ImportedDraft | undefined {
   const d = (state as { imported?: ImportedDraft } | null)?.imported;

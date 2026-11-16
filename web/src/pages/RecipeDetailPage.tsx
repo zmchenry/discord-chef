@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock, ExternalLink, Pencil, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Clock, ExternalLink, Mic, Pencil, Trash2, Users } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { tagLabel } from "../../../shared/normalize";
@@ -76,7 +76,15 @@ export function RecipeDetailPage() {
       <Card className="p-4">
         <h2 className="m-0 mb-2 text-xl">Ingredients</h2>
         {r.ingredients.length === 0 ? (
-          <p className="m-0 text-muted">No ingredients yet.</p>
+          <div className="grid gap-3">
+            <p className="m-0 text-muted">No ingredients yet.</p>
+            {!r.archivedAt && (
+              <LinkButton to={`/recipes/speak?recipe=${r.id}`} className="min-h-14 px-3">
+                <Mic size={22} aria-hidden="true" />
+                Add ingredients and steps by voice
+              </LinkButton>
+            )}
+          </div>
         ) : (
           <ul className="m-0 list-none p-0">
             {r.ingredients.map((i) => (
@@ -103,6 +111,16 @@ export function RecipeDetailPage() {
           </ol>
         )}
       </Card>
+
+      {r.ingredients.length > 0 && !r.archivedAt && (
+        <Link
+          to={`/recipes/speak?recipe=${r.id}`}
+          className="inline-flex min-h-11 items-center gap-2 justify-self-start font-semibold text-primary"
+        >
+          <Mic size={18} aria-hidden="true" />
+          Add more by voice
+        </Link>
+      )}
 
       {r.sourceUrl && (
         <a

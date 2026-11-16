@@ -17,13 +17,17 @@ export function RecipeEditPage() {
   const imported = importedDraftFrom(useLocation().state);
   if (id && existing.isPending) return <StateMessage title="Loading…" />;
   if (id && existing.isError) return <StateMessage title="Couldn't load this recipe">{existing.error.message}</StateMessage>;
-  return <RecipeForm key={id ?? "new"} base={existing.data} imported={id ? undefined : imported} />;
+  // On an edit, only the voice/text import (a draft built on this recipe)
+  // may prefill the form.
+  const prefill = id && imported?.via !== "text" ? undefined : imported;
+  return <RecipeForm key={id ?? "new"} base={existing.data} imported={prefill} />;
 }
 
-// `imported`: a draft from the link import, prefilled and carried through.
+// `imported`: a draft from an import, prefilled and carried through. With
+// `base` too, it is that recipe with spoken ingredients and steps merged in.
 export function RecipeForm({ base, imported }: { base?: Recipe; imported?: ImportedDraft }) {
   const [values, setValues] = useState<RecipeFormValues>(() =>
-    base ? recipeToForm(base) : imported ? draftToForm(imported.draft) : emptyForm,
+    imported ? draftToForm(imported.draft) : base ? recipeToForm(base) : emptyForm,
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const save = useSaveRecipe(base?.id);

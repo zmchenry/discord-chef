@@ -11,13 +11,15 @@ function host(url: string | null | undefined): string {
   }
 }
 
-// Shown above the prefilled recipe form after a link import.
+// Shown above the prefilled recipe form after a link or text import.
 export function ImportedNotice({ imported }: { imported: ImportedDraft }) {
   return (
     <Card className="flex gap-3 p-4">
       <Info size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-primary" />
       <div className="grid gap-1">
-        <p className="m-0 font-semibold">Imported from {host(imported.draft.sourceUrl)}</p>
+        <p className="m-0 font-semibold">
+          {imported.via === "text" ? "Filled in from what you said" : `Imported from ${host(imported.draft.sourceUrl)}`}
+        </p>
         <p className="m-0 text-sm text-muted">Check it over and fix anything that looks off, then save.</p>
         {imported.warnings.length > 0 && (
           <ul className="m-0 grid gap-1 pl-5 text-sm">
