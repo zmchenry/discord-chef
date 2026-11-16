@@ -74,3 +74,6 @@ backfill-*
 # Notion exports and other recipe dumps (personal data, never commit)
 notion-export/
 *.export.json
+
+# Agent worktrees
+.claude/worktrees/
