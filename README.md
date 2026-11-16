@@ -23,11 +23,12 @@ cutover.
 | `make types` | Regenerates `worker-configuration.d.ts` from `wrangler.jsonc` |
 | `make typecheck` | `tsc` over api, shared, tests and web |
 | `make test` | API tests (vitest + miniflare D1) and web unit tests |
-| `make e2e` | Playwright smoke test at Pixel 7 size against `vite preview` with a mocked `/api` |
+| `make e2e` | Builds, then Playwright smoke tests at Pixel 7 size against `vite preview`, with `/api` mocked in the browser (`web/e2e/mockApi.ts`) |
+| `make lint` | ESLint |
 | `make db-migrate` | Applies `migrations/` to the local D1 under `.wrangler/` |
 | `make db-migrate-remote` | Applies `migrations/` to the real D1 database |
 | `make dry-run` | Bundles and validates the Worker without uploading |
-| `make deploy` | Builds and deploys (CI normally does this on push to `main`) |
+| `make deploy` | Builds and deploys from this machine (normally Workers Builds does it) |
 
 ### Local development
 
@@ -39,26 +40,57 @@ make build && make dev-api                   # http://localhost:8787
 # or, for HMR, run `make dev-api` and `make dev` side by side
 ```
 
-With `ENVIRONMENT=development` the Worker skips Cloudflare Access and trusts an
-`x-dev-user-id` header instead. The web app sends `dev@example.com` in that
-header when built in dev mode. Production never sets `ENVIRONMENT`, so it
-defaults closed.
+With `ENVIRONMENT=development` the Worker skips Cloudflare Access and signs
+every request in as `dev@example.com` (tests act as other users with an
+`x-dev-user-id` header). Production never sets `ENVIRONMENT`, so it defaults
+closed.
+
+Only `wrangler dev` reads `.dev.vars`. Every other wrangler command in the
+Makefile passes `--env-file /dev/null`, so local secrets never end up in the
+generated `Env` type or near a deploy.
+
+## Auth
+
+Cloudflare Access protects the whole host (Google login, two allowed emails).
+The Worker verifies the Access JWT itself (`api/src/session.ts`) against
+`TEAM_DOMAIN` and `POLICY_AUD` in `wrangler.jsonc`, then checks the email
+against `ALLOWED_EMAILS`.
+
+`ALLOWED_EMAILS` is a Worker **secret**, not a var, because this repo is
+public. Set it once (comma-separated):
+
+```sh
+npx wrangler secret put ALLOWED_EMAILS
+```
+
+If it is unset, every authenticated route answers 401.
+
+## Deploys
+
+Production deploys run on **Cloudflare Workers Builds** (the Git integration
+in the Cloudflare dashboard), on push to `main`:
+
+| Setting | Value |
+|---|---|
+| Build command | `npm ci && (cd web && npm ci)` |
+| Deploy command | `npm run deploy:ci` |
+
+`deploy:ci` builds the SPA, applies D1 migrations remotely, then runs
+`wrangler deploy`. GitHub Actions (`.github/workflows/ci.yml`) only runs tests,
+typecheck, build and the smoke tests, on pull requests and `claude/**`
+branches. It never deploys and needs no Cloudflare credentials.
 
 ## Layout
 
 ```
-api/         Hono Worker: src/index.ts (routes), session.ts (Access JWT), db.ts
+api/         Hono Worker: src/index.ts (routes, cron), session.ts (Access JWT), db.ts
 api/test/    vitest suites; setup/testDb.ts gives each test a fresh miniflare D1
-shared/      zod schemas and types: the API contract web/ and api/ both import
+shared/      zod schemas and types (the API contract web/ and api/ both import)
 migrations/  D1 SQL migrations
-web/         Vite + React 18 + Tailwind 4 SPA, PWA manifest and service worker
-web/e2e/     Playwright smoke tests
-.github/     ci.yml (PRs and claude/** branches), deploy.yml (main + manual)
+web/         Vite + React 18 + Tailwind 4 SPA
+  src/styles/tokens.css   the design tokens; components use nothing else
+  public/                 manifest, service worker (sw.js), icons
+  scripts/make-icons.mjs  regenerates the PNG icons from the SVG mark
+  e2e/                    Playwright smoke tests
+.github/     ci.yml
 ```
-
-## Before the first deploy
-
-1. `npx wrangler d1 create chef` and copy the id into `wrangler.jsonc`.
-2. Create the Access application for `chef.zmchenry.com`, then set `POLICY_AUD`
-   and `ALLOWED_EMAILS` in `wrangler.jsonc`.
-3. Add a `CLOUDFLARE_API_TOKEN` secret to the GitHub repo.
