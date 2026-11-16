@@ -88,9 +88,23 @@ Liz), installable on their Android phones.
   sentence case. Tags are lowercase kebab-case from a controlled vocabulary. Store
   sections come from a fixed list. Store and person names are trimmed and Title Case.
 
+- **Weekly planning session** (prototype #2, answered 2026-11-16):
+  - **Together on one phone.** Planning is one shared session, not live multi-device
+    co-editing. Both people can still edit anywhere, with last write winning per slot,
+    so no realtime sync (Durable Objects, websockets) is needed.
+  - **Themes boost, never filter.** A day theme (Taco Tuesday) puts matching recipes at
+    the top of the list as a strong scoring term. Everything else stays pickable.
+  - **One store per trip.** Cost optimization picks the cheapest single store for each
+    trip (weekend, midweek) and never splits items across stores. Each trip's list
+    shows its estimated total at each store.
+  - **Breakfasts and lunches are planned per day**, like dinners: 21 slots a week.
+    "Copy to other days" and "leftovers for tomorrow's lunch" remain as shortcuts, not
+    the default.
+
 ## Open questions
 
-1. Weekly selection flow details (prototype #2's "Decisions for you" answers).
+None blocking. Next decisions come with the Phase 3 build: suggestion weights, and the
+calendar-event rules.
 
 ## What the Notion data looks like
 
