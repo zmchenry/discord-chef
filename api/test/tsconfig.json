@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // Test files run as plain vitest under Node (see the root
+    // vitest.config.ts), not inside the Worker — api/test/setup/testDb.ts
+    // reads migrations off disk with node:fs/promises. api/tsconfig.json
+    // deliberately omits Node types so api/src can't accidentally use a Node
+    // API that doesn't exist in the Worker; this project adds "node" back for
+    // the files that legitimately need it, without loosening that check for
+    // src.
+    "types": ["node", "../../worker-configuration.d.ts"],
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
+  },
+  "include": ["**/*.ts", "../../shared"]
+}
