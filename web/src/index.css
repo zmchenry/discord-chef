@@ -1,0 +1,120 @@
+@import "tailwindcss";
+@import "./styles/tokens.css";
+
+/*
+ * Map the tokens in styles/tokens.css onto Tailwind's theme namespaces.
+ *
+ * `--color-*: initial` (and the same for fonts, radii, shadows) drops
+ * Tailwind's default palette, so `bg-red-500` and friends do not exist and
+ * a component cannot reach a raw colour by accident: only the token-backed
+ * utilities below are generated.
+ *
+ * `reference` stops Tailwind emitting these as variables of its own (the
+ * real values come from tokens.css, which would otherwise be shadowed by a
+ * self-referencing copy). `inline` makes each utility use var(--token)
+ * directly, so swapping tokens.css re-themes everything with no rebuild of
+ * the component CSS.
+ */
+@theme inline reference {
+  --color-*: initial;
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-text: var(--color-text);
+  --color-muted: var(--color-muted);
+  --color-primary: var(--color-primary);
+  --color-on-primary: var(--color-on-primary);
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-border: var(--color-border);
+  --color-danger: var(--color-danger);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-*: initial;
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+
+  --radius-*: initial;
+  --radius-card: var(--radius);
+  --radius-sm: var(--radius-sm);
+  --radius-full: 9999px;
+
+  --shadow-*: initial;
+  --shadow-card: var(--shadow-card);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    /* Inputs inherit this, and 16px is the floor below which mobile browsers
+       zoom the page on focus. */
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    font-size: max(16px, 1em);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  button,
+  [role="button"],
+  a {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* The gentle press feedback from the chosen direction. */
+  .pressable {
+    transition:
+      transform var(--press-duration) ease,
+      background-color var(--press-duration) ease,
+      color var(--press-duration) ease;
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pressable {
+      transition: none;
+    }
+    .pressable:active {
+      transform: none;
+    }
+  }
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}

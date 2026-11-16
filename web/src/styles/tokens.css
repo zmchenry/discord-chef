@@ -1,0 +1,58 @@
+/*
+ * Design tokens: the ONLY place colours, fonts, radii and shadows are
+ * defined. Components reach them through the Tailwind utilities mapped in
+ * index.css (bg-bg, text-muted, rounded-card, font-display, ...), never as
+ * raw values, so a new visual direction is a change to this file alone.
+ *
+ * Direction: "Terracotta Kitchen". Warm and cookbook-like: a serif display
+ * face, soft rounded cards, sage green for anything that means "good to go".
+ *
+ * Contrast (WCAG 2.x), checked for every text/background pair in use:
+ *   light  text/bg 15.0  muted/bg 6.4  muted/surface-2 5.7  on-primary/primary 7.3
+ *          primary/bg 6.7  accent/bg 5.8  accent/accent-soft 5.3  danger/bg 6.1
+ *   dark   text/bg 15.3  muted/bg 8.8  muted/surface-2 7.0  on-primary/primary 8.6
+ *          primary/bg 8.9  accent/bg 10.1  accent/accent-soft 8.0  danger/bg 6.6
+ */
+:root {
+  color-scheme: light;
+
+  --color-bg: #fbf5ec;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4e8d8;
+  --color-text: #2b1d14;
+  --color-muted: #6b5646;
+  --color-primary: #9a3412;
+  --color-on-primary: #ffffff;
+  --color-accent: #3d6a4c;
+  --color-accent-soft: #e5eee4;
+  --color-border: #e8d9c7;
+  --color-danger: #b42318;
+
+  --radius: 16px;
+  --radius-sm: 12px;
+  --shadow-card: 0 1px 2px rgb(75 40 20 / 0.06), 0 6px 18px rgb(75 40 20 / 0.08);
+  --press-duration: 200ms;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --color-bg: #1a1310;
+    --color-surface: #261c17;
+    --color-surface-2: #33261f;
+    --color-text: #f4e9dc;
+    --color-muted: #c3b0a0;
+    --color-primary: #f2a27c;
+    --color-on-primary: #2a1208;
+    --color-accent: #9dcba9;
+    --color-accent-soft: #1f2c24;
+    --color-border: #3d2f27;
+    --color-danger: #f97066;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  }
+}
