@@ -117,6 +117,7 @@ export const useAddItem = (weekId: string) =>
           manualRank: rank,
           checkedAt: null,
           checkedBy: null,
+          storeId: null,
         };
         return { ...l, items: [...l.items, item] };
       }),
@@ -139,3 +140,49 @@ export const useUpdateList = (weekId: string) =>
       lists: week.lists.map((l) => (l.id === listId ? { ...l, storeId: storeId ?? l.storeId, sort: sort ?? l.sort } : l)),
     }),
   );
+
+// Store pins. The pin lives on the ingredient, so every item for it on any
+// list changes at once; the week is refetched for the new totals.
+export const storePinsKey = ["store-pins"] as const;
+
+export function useStorePins() {
+  return useQuery({ queryKey: storePinsKey, queryFn: ({ signal }) => shoppingApi.storePins(signal) });
+}
+
+export function usePinIngredient(weekId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: MUTATION_KEY,
+    mutationFn: ({ ingredientId, storeId }: { ingredientId: number; storeId: number | null }) =>
+      shoppingApi.setIngredientStore(ingredientId, storeId),
+    onMutate: async ({ ingredientId, storeId }) => {
+      await qc.cancelQueries({ queryKey: storePinsKey });
+      const prevPins = qc.getQueryData<Array<{ ingredientId: number; storeId: number }>>(storePinsKey);
+      if (prevPins) {
+        const rest = prevPins.filter((p) => p.ingredientId !== ingredientId);
+        qc.setQueryData(storePinsKey, storeId === null ? rest : [...rest, { ingredientId, storeId }]);
+      }
+      if (!weekId) return { prevPins };
+      await qc.cancelQueries({ queryKey: shoppingKey(weekId) });
+      const prev = qc.getQueryData<ShoppingWeekResponse>(shoppingKey(weekId));
+      qc.setQueryData<ShoppingWeekResponse>(shoppingKey(weekId), (week) =>
+        week && {
+          ...week,
+          lists: week.lists.map((l) => ({
+            ...l,
+            items: l.items.map((i) => (i.ingredientId === ingredientId ? { ...i, storeId } : i)),
+          })),
+        },
+      );
+      return { prev, prevPins };
+    },
+    onError: (_err, _v, ctx) => {
+      if (ctx?.prevPins) qc.setQueryData(storePinsKey, ctx.prevPins);
+      if (weekId && ctx && "prev" in ctx && ctx.prev) qc.setQueryData(shoppingKey(weekId), ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: storePinsKey });
+      void qc.invalidateQueries({ queryKey: ["shopping"] });
+    },
+  });
+}
