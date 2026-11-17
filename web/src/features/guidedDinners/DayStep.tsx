@@ -6,6 +6,7 @@ import type { Suggestion, WeekDay, WeekSlot } from "../../../../shared/planningA
 import { ReasonChips } from "../../components/ReasonChips";
 import { Button, Card, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { FindNewForTheme } from "../discovery/FindNewForTheme";
 import { MARKER_LABEL } from "../planning/format";
 import type { SlotChange } from "../planning/queries";
 import { useDinnerIdeas } from "./api";
@@ -152,6 +153,7 @@ export function DayStep({
               Show {others.length - shownOthers.length} more
             </Button>
           )}
+          {theme && <FindNewForTheme theme={theme.label} />}
         </>
       )}
     </div>
