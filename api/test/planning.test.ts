@@ -113,6 +113,27 @@ it('replans a week: keeps your picks by default, or only locked ones', async () 
   expect(lockedOnly.slots.find((s) => s.date === '2026-11-24' && s.meal === 'dinner')).toMatchObject({ recipeId: tacos.id, locked: true })
 })
 
+it('flags a finished week as changed when a slot is edited, until it is finished again', async () => {
+  const tacos = await json<Recipe>(devRequest('POST', '/api/recipes', recipe('Tacos', ['dinner'], ['tortillas'])), 201)
+  const fajitas = await json<Recipe>(devRequest('POST', '/api/recipes', recipe('Fajitas', ['dinner'], ['tortillas'])), 201)
+  const post = (path: string) =>
+    new Request(`https://chef.zmchenry.com/api/weeks/${WEEK}/${path}`, {
+      method: 'POST',
+      headers: { 'x-dev-user-id': 'zach@example.com', 'content-type': 'application/json' },
+    })
+  await json<WeekView>(devRequest('PUT', `/api/weeks/${WEEK}/slots/2026-11-24/dinner`, { kind: 'recipe', recipeId: tacos.id }))
+  const done = await json<WeekView>(post('finish'))
+  expect(done).toMatchObject({ status: 'planned', changedSinceFinish: false })
+
+  // Locking doesn't change what's bought, so it isn't a change.
+  const locked = await json<WeekView>(devRequest('PUT', `/api/weeks/${WEEK}/slots/2026-11-24/dinner`, { kind: 'recipe', recipeId: tacos.id, locked: true }))
+  expect(locked.changedSinceFinish).toBe(false)
+
+  const edited = await json<WeekView>(devRequest('PUT', `/api/weeks/${WEEK}/slots/2026-11-24/dinner`, { kind: 'recipe', recipeId: fajitas.id }))
+  expect(edited.changedSinceFinish).toBe(true)
+  expect((await json<WeekView>(post('finish'))).changedSinceFinish).toBe(false)
+})
+
 it('never returns the calendar address', async () => {
   const saved = await json<CalendarSettings>(
     devRequest('PUT', '/api/settings/calendar', { icalUrl: 'webcal://calendar.example.com/secret/basic.ics' }),

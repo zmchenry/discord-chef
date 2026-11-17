@@ -105,6 +105,8 @@ export type WeekSummaryWire = z.infer<typeof weekSummaryWireSchema>
 export const weekViewSchema = z.object({
   id: isoDateSchema,
   status: weekStatusSchema,
+  // A finished week whose slots changed since it was finished.
+  changedSinceFinish: z.boolean().default(false),
   days: z.array(weekDaySchema),
   slots: z.array(weekSlotSchema),
   summary: weekSummaryWireSchema,

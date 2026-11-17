@@ -32,6 +32,9 @@ import { clearForReplan, type ReplanKeep,
   replaceThemes,
   setSetting,
   setWeekStatus,
+  slotsSignature,
+  getPlannedSignature,
+  setPlannedSignature,
   toPlannedSlots,
   upsertSlotStatement,
 } from './db'
@@ -103,9 +106,11 @@ export async function weekView(env: Env, weekId: string): Promise<WeekView> {
   const w = await loadWeek(env, weekId)
   const summary = weekSummary({ week: w.planned, candidates: w.candidates })
   const names = new Map(w.candidates.flatMap((x) => Object.entries(x.ingredientNames ?? {})))
+  const signature = w.status === 'planned' ? await getPlannedSignature(env.DB, weekId) : null
   return {
     id: weekId,
     status: w.status,
+    changedSinceFinish: w.status === 'planned' && signature !== null && signature !== slotsSignature(w.slots),
     days: w.days.map((d) => ({
       date: d.date,
       weekday: weekdayOf(d.date),
@@ -270,6 +275,7 @@ planning.post('/weeks/:start/finish', jsonPost, async (c) => {
   if (!weekId) return notFound(c)
   await ensureWeek(c.env.DB, weekId)
   await setWeekStatus(c.env.DB, weekId, 'planned')
+  await setPlannedSignature(c.env.DB, weekId, slotsSignature(await listSlots(c.env.DB, weekId)))
   await onWeekPlanned(c.env, weekId, waitUntilFor(c))
   return c.json(await weekView(c.env, weekId))
 })

@@ -50,6 +50,7 @@ function weekView(start: string): WeekView {
   return {
     id: start,
     status: "draft",
+    changedSinceFinish: false,
     days: Array.from({ length: 7 }, (_, i) => ({
       date: day(i),
       weekday: i,

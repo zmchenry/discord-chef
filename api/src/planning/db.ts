@@ -84,6 +84,24 @@ export async function ensureWeek(db: D1Database, weekId: string): Promise<'draft
   return row!.status
 }
 
+// What was planned, independent of order, lock or source: the slots that
+// change the shopping list.
+export function slotsSignature(slots: Pick<WeekSlot, 'date' | 'meal' | 'kind' | 'recipeId'>[]): string {
+  return slots
+    .map((s) => `${s.date}|${s.meal}|${s.kind}|${s.recipeId ?? ''}`)
+    .sort()
+    .join(';')
+}
+
+export async function getPlannedSignature(db: D1Database, weekId: string): Promise<string | null> {
+  const row = await db.prepare('SELECT planned_signature FROM weeks WHERE id = ?1').bind(weekId).first<{ planned_signature: string | null }>()
+  return row?.planned_signature ?? null
+}
+
+export async function setPlannedSignature(db: D1Database, weekId: string, signature: string): Promise<void> {
+  await db.prepare('UPDATE weeks SET planned_signature = ?2 WHERE id = ?1').bind(weekId, signature).run()
+}
+
 export async function setWeekStatus(db: D1Database, weekId: string, status: 'draft' | 'planned'): Promise<void> {
   await db.prepare('UPDATE weeks SET status = ?2, updated_at = ?3 WHERE id = ?1').bind(weekId, status, Date.now()).run()
 }

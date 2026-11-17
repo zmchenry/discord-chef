@@ -123,7 +123,7 @@ export function WeekPage() {
                     {autofill.isPending ? "Filling…" : autofillLabel(plan.open)}
                   </>
                 ) : plan.primary === "review" ? (
-                  "Finish week"
+                  week.data?.status === "planned" ? "Save changes" : "Finish week"
                 ) : (
                   <>
                     <ShoppingBasket size={18} aria-hidden="true" />
@@ -220,7 +220,7 @@ function primaryFor(week: WeekView): { primary: Action; open: number; openBL: nu
   const openDinners = week.days.filter((d) => !week.slots.some((s) => s.date === d.date && s.meal === "dinner")).length;
   const openBL = 14 - week.slots.filter((s) => s.meal !== "dinner").length;
   const primary: Action =
-    openDinners > 0 ? "plan" : openBL > 0 ? "fillBL" : open > 0 ? "autofill" : week.status === "draft" ? "review" : "shop";
+    openDinners > 0 ? "plan" : openBL > 0 ? "fillBL" : open > 0 ? "autofill" : week.status === "draft" || week.changedSinceFinish ? "review" : "shop";
   return { open, openBL, primary };
 }
 

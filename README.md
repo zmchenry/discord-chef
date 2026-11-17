@@ -1,16 +1,34 @@
 # Chef
 
-A private meal-planning web app for a two-person household: recipes, a weekly
-breakfast/lunch/dinner plan, and the shopping list that falls out of it.
-Installable on Android as a PWA. Served from `chef.zmchenry.com` behind
-Cloudflare Access.
+A private meal-planning web app for a two-person household, served from
+`chef.zmchenry.com` behind Cloudflare Access and installable on Android as a PWA.
 
-One Cloudflare Worker serves both `/api/*` (Hono, D1) and the React SPA as
-static assets. The plan and the data model live in
-[`project-plans/chef.md`](project-plans/chef.md).
+What it does:
+- **Recipes**: add them by hand, from a web link (including Android share), or by voice
+  or text; ingredients are parsed into amount, unit and name, under one set of naming
+  rules.
+- **Week**: breakfast, lunch and dinner for 7 days, with day themes (Taco Tuesday …).
+  Use auto-fill when anything will do, or the step-by-step **Plan dinners** flow.
+  Breakfasts come from a rotation, lunches from leftovers or a staple. Suggestions
+  explain their ranking (theme, family calendar, shared ingredients, how recently you
+  had it, cost).
+- **Family calendar**: the secret iCal feed, refreshed every 15 minutes. Busy evenings,
+  trips and dinners out shape the plan, and clashes with what's already planned get a
+  banner and a push.
+- **Shop**: the week's list, with aisle, A–Z, your own order and learned "smart"
+  order, two trips, one store per trip with price estimates, items pinned to a store
+  ("Also at Publix") and check-off on both phones.
+- **Notifications**: plan-the-week reminder, the morning "what's cooking" with thaw
+  reminders, list ready, calendar clashes.
 
-The old Discord bot (Python + Notion) lives in git history and on `main` until
-cutover.
+One Cloudflare Worker serves both `/api/*` (Hono, D1) and the React SPA as static
+assets. Product decisions, the data model and status live in
+[`project-plans/chef.md`](project-plans/chef.md); v1 in
+[`project-plans/v1.md`](project-plans/v1.md); ideas for later in
+[`project-plans/future.md`](project-plans/future.md).
+
+The old Discord bot (Python + Notion) is retired. It lives in git history (last
+version: commit `8442785`), and Notion is a read-only archive since the one-time import.
 
 ## Make targets
 
