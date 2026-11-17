@@ -25,6 +25,8 @@ export const storeTotalSchema = z.object({
   cents: z.number().int().nonnegative(),
   priced: z.number().int().nonnegative(),
   total: z.number().int().nonnegative(),
+  // Priced items whose price is from a receipt under 90 days old.
+  fromReceipt: z.number().int().nonnegative().optional(),
 })
 export type StoreTotalView = z.infer<typeof storeTotalSchema>
 
@@ -124,7 +126,7 @@ export const ingredientPriceSchema = z.object({
   storeId: z.number().int(),
   cents: z.number().int(),
   unit: z.string().nullable(),
-  source: z.enum(['estimate', 'manual']),
+  source: z.enum(['estimate', 'manual', 'receipt']),
   updatedAt: z.number().int(),
 })
 export type IngredientPrice = z.infer<typeof ingredientPriceSchema>
