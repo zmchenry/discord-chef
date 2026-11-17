@@ -6,7 +6,7 @@ import type { Meal } from "../../../../shared/schema";
 import { cx } from "../../lib/cx";
 import { ServesLine } from "../household/ServesLine";
 import { useSetPortions, useWeekNutrition } from "./api";
-import { fmt, servings } from "./format";
+import { fmt } from "./format";
 
 const STEP = 0.25;
 const MAX = 6;
@@ -57,11 +57,13 @@ export function PortionSection({ weekId, date, meal }: { weekId: string; date: s
         )}
       </div>
       <ServesLine meal={m} />
-      <p className="m-0 text-sm text-muted">
-        {people.map((p) => `${p} ${p === people[0] ? servings(draft[p]!) : draft[p]}`).join(" · ")}
-        {m.perServing ? ` · about ${fmt(m.perServing.kcal)} kcal a serving (est.)` : ""}
-        {away.length ? ` · ${away.join(" and ")} away` : ""}
-      </p>
+      {(m.perServing || away.length > 0) && (
+        <p className="m-0 text-sm text-muted">
+          {[m.perServing ? `About ${fmt(m.perServing.kcal)} kcal a serving (est.)` : null, away.length ? `${away.join(" and ")} away` : null]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      )}
       <ul className="m-0 grid list-none gap-1 p-0">
         {people.map((p) => (
           <li key={p} className="flex items-center justify-between gap-2">
