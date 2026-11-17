@@ -30,6 +30,7 @@ import { guidedDinnersRoutes } from './guidedDinners/routes'
 import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
+import { pantryRoutes } from './pantry/routes'
 import { planningRoutes } from './planning/routes'
 import { priceRoutes } from './prices/routes'
 import {
@@ -207,6 +208,7 @@ app.get('/stores', requireSession, async (c) => {
 
 app.route('/', shoppingRoutes)
 app.route('/', priceRoutes)
+app.route('/', pantryRoutes)
 
 // Anything under /api that matched no route. Without this the static-asset
 // fallback would answer with index.html and a 200, which looks like a working

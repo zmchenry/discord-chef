@@ -41,9 +41,11 @@ export function useCheckItem(weekId: string) {
     mutationFn: ({ id, checked }: { id: number; checked: boolean }) => shoppingApi.patchItem(id, { checked }),
     onMutate: async ({ id, checked }) => {
       await qc.cancelQueries({ queryKey: shoppingKey(weekId) });
-      editItem(qc, weekId, id, (i) => ({ ...i, checkedAt: checked ? Date.now() : null }));
+      // Checking off puts the ingredient in the pantry, unchecking takes it out.
+      editItem(qc, weekId, id, (i) => ({ ...i, checkedAt: checked ? Date.now() : null, onHand: i.ingredientId != null ? checked : i.onHand }));
     },
-    onError: (_err, { id, checked }) => editItem(qc, weekId, id, (i) => ({ ...i, checkedAt: checked ? null : Date.now() })),
+    onError: (_err, { id, checked }) =>
+      editItem(qc, weekId, id, (i) => ({ ...i, checkedAt: checked ? null : Date.now(), onHand: i.ingredientId != null ? !checked : i.onHand })),
   });
 }
 

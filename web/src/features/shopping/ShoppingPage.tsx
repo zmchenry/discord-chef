@@ -4,11 +4,14 @@ import { useSearchParams } from "react-router-dom";
 
 import type { ShoppingSort } from "../../../../shared/schema";
 import type { ShoppingListView, ShoppingWeekResponse } from "../../../../shared/shopping";
+import { splitAlreadyHave } from "../../../../shared/shopping/pantry";
 import { sortItems } from "../../../../shared/shopping/sort";
 import { groupByStore } from "../../../../shared/shopping/store";
 import { addDays, defaultShoppingWeek, formatWeekRange } from "../../../../shared/shopping/week";
 import { OverflowMenu, type MenuItem } from "../../components/OverflowMenu";
 import { Button, Card, StateMessage } from "../../components/ui";
+import { AlreadyHave } from "../pantry/AlreadyHave";
+import { useSetPantry } from "../pantry/api";
 import { cx } from "../../lib/cx";
 import { AddItem } from "./AddItem";
 import { AlsoAt, ItemList, type Row } from "./ItemList";
@@ -197,8 +200,11 @@ function WeekLists({
   const add = useAddItem(week.weekId);
   const remove = useDeleteItem(week.weekId);
   const pin = usePinIngredient(week.weekId);
+  const pantry = useSetPantry();
 
-  const rows: Row[] = useMemo(() => list.items.map((i) => ({ ...i, checked: i.checkedAt !== null })), [list.items]);
+  // Items already in the pantry sit in a collapsed group at the end, out of the counts.
+  const { toBuy, have } = useMemo(() => splitAlreadyHave(list.items), [list.items]);
+  const rows: Row[] = useMemo(() => toBuy.map((i) => ({ ...i, checked: i.checkedAt !== null })), [toBuy]);
   // Items pinned to another store go in "Also at <store>" groups at the end.
   const split = useMemo(() => groupByStore(rows, list.storeId, week.stores.map((s) => s.id)), [rows, list.storeId, week.stores]);
   const groups = useMemo(() => sortItems(split.main, list.sort, store, list.learned), [split.main, list.sort, store, list.learned]);
@@ -220,6 +226,7 @@ function WeekLists({
     onMove: (item: Row, manualRank: number) => rank.mutate({ id: item.id, manualRank, previous: item.manualRank }),
     onPin: (item: Row, storeId: number | null) =>
       item.ingredientId != null && pin.mutate({ ingredientId: item.ingredientId, storeId }),
+    onUsedUp: (item: Row) => item.ingredientId != null && pantry.mutate({ ingredientId: item.ingredientId, onHand: false }),
   };
   const done = rows.filter((r) => r.checked).length;
   const recipeCount = new Set(rows.flatMap((r) => r.recipeIds)).size;
@@ -231,7 +238,7 @@ function WeekLists({
         {week.twoTrips && (
           <Segmented
             label="Trip"
-            options={week.lists.map((l, i) => [String(i), `${l.trip === "midweek" ? "Midweek" : "Weekend"} · ${l.items.filter((x) => x.checkedAt === null).length}`])}
+            options={week.lists.map((l, i) => [String(i), `${l.trip === "midweek" ? "Midweek" : "Weekend"} · ${l.items.filter((x) => x.checkedAt === null && !x.onHand).length}`])}
             value={String(week.lists.indexOf(list))}
             onChange={(v) => onTrip(Number(v))}
           />
@@ -278,7 +285,7 @@ function WeekLists({
 
       <AddItem onAdd={(item) => add.mutate({ listId: list.id, ...item })} />
 
-      {rows.length === 0 ? (
+      {rows.length === 0 && have.length === 0 ? (
         <StateMessage title="Nothing to buy">Plan some recipes for this week, then tap Update. Or add items above.</StateMessage>
       ) : (
         <>
@@ -286,6 +293,7 @@ function WeekLists({
           {also.map((a) => (
             <AlsoAt key={a.store.id} store={a.store} cents={a.cents} items={a.items} {...rowProps} />
           ))}
+          <AlreadyHave items={have} onNeed={(item) => item.ingredientId != null && pantry.mutate({ ingredientId: item.ingredientId, onHand: false })} />
         </>
       )}
     </div>

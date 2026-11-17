@@ -17,6 +17,9 @@ import {
 export const shoppingItemViewSchema = shoppingItemSchema.extend({
   amount: z.string().nullable(),
   storeId: z.number().int().nullable(),
+  // The ingredient is in the pantry (on hand, not low). Unchecked, the
+  // item goes in the "Already have" group (shared/shopping/pantry.ts).
+  onHand: z.boolean().optional(),
 })
 export type ShoppingItemView = z.infer<typeof shoppingItemViewSchema>
 
