@@ -7,6 +7,7 @@ import type { ShoppingListView, ShoppingWeekResponse } from "../../../../shared/
 import { MIN_PRICED_SHARE } from "../../../../shared/shopping/store";
 import { Card } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { totalTag } from "../receipts/share";
 import { shoppingApi } from "./api";
 import { shoppingKey } from "./queries";
 
@@ -52,7 +53,9 @@ export function StorePicker({
               <span className="font-bold leading-tight">{s.name}</span>
               {total !== null && (
                 <span className={cx("text-xs font-semibold leading-tight", !selected && "text-muted")}>
-                  {dollars(total)} est.{rec?.storeId === s.id ? " · lowest" : ""}
+                  {dollars(total)}
+                  {totalTag(list.totals.find((x) => x.storeId === s.id))}
+                  {rec?.storeId === s.id ? " · lowest" : ""}
                 </span>
               )}
             </button>

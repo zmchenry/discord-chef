@@ -1,8 +1,8 @@
-import { Keyboard, Link2, Mic, Plus, Search } from "lucide-react";
+import { Keyboard, Lightbulb, Link2, Mic, Plus, Search } from "lucide-react";
 import { useDeferredValue } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { ActionMenu } from "../components/OverflowMenu";
+import { ActionMenu, OverflowMenu } from "../components/OverflowMenu";
 import { PageHeader, StateMessage } from "../components/ui";
 import { RecipeCard } from "../features/recipePresentation/RecipeCard";
 import { cx } from "../lib/cx";
@@ -32,21 +32,26 @@ export function RecipesPage() {
       <PageHeader
         title="Recipes"
         action={
-          <ActionMenu
-            label="Add recipe"
-            trigger={
-              <>
-                <Plus size={20} aria-hidden="true" />
-                Add recipe
-              </>
-            }
-            triggerClassName="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary pl-3 pr-4 font-semibold text-on-primary"
-            items={[
-              { label: "Say it", hint: "Talk it through, or paste text", icon: Mic, onSelect: () => navigate("/recipes/speak") },
-              { label: "Paste a link", hint: "Import from a recipe page", icon: Link2, onSelect: () => navigate("/recipes/import") },
-              { label: "Type it", hint: "Fill in the form yourself", icon: Keyboard, onSelect: () => navigate("/recipes/new") },
-            ]}
-          />
+          <div className="flex items-center gap-1">
+            <ActionMenu
+              label="Add recipe"
+              trigger={
+                <>
+                  <Plus size={20} aria-hidden="true" />
+                  Add recipe
+                </>
+              }
+              triggerClassName="pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary pl-3 pr-4 font-semibold text-on-primary"
+              items={[
+                { label: "Say it", hint: "Talk it through, or paste text", icon: Mic, onSelect: () => navigate("/recipes/speak") },
+                { label: "Paste a link", hint: "Import from a recipe page", icon: Link2, onSelect: () => navigate("/recipes/import") },
+                { label: "Type it", hint: "Fill in the form yourself", icon: Keyboard, onSelect: () => navigate("/recipes/new") },
+              ]}
+            />
+            <OverflowMenu
+              items={[{ label: "Ideas", hint: "New recipes from the web", icon: Lightbulb, onSelect: () => navigate("/recipes/ideas") }]}
+            />
+          </div>
         }
       />
       <div className="grid gap-3 px-4">

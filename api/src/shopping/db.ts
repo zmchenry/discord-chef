@@ -2,9 +2,13 @@ import { cleanText, parseIngredientLine, SECTIONS, tryNormalizeSectionName } fro
 import type { ShoppingSort, Trip } from '../../../shared/schema'
 import type { PinnedIngredient, ShoppingItemView, ShoppingListView, ShoppingWeekResponse } from '../../../shared/shopping'
 import { formatPart } from '../../../shared/shopping/aggregate'
+import { isAlreadyHave } from '../../../shared/shopping/pantry'
 import { learnedRanks } from '../../../shared/shopping/sort'
 import { pinnedTotals, recommendStore, storeTotals } from '../../../shared/shopping/store'
 import { listStores } from '../db'
+import { isPantryBasic } from '../../../shared/pantry'
+import { haveEnoughOf, setPantryStatement } from '../pantry/db'
+import { withReceiptCounts, type PriceSource } from '../../../shared/receipts/prices'
 
 // Data access for shopping. Same conventions as api/src/db.ts: the D1
 // binding is passed in, and the snake_case -> camelCase mapping lives here.
@@ -98,16 +102,18 @@ export async function getShoppingWeek(db: D1Database, weekId: string): Promise<S
       .bind(weekId),
     db
       .prepare(
-        `SELECT ingredient_id AS ingredientId, store_id AS storeId, cents FROM ingredient_prices
+        `SELECT ingredient_id AS ingredientId, store_id AS storeId, cents, source, updated_at AS updatedAt FROM ingredient_prices
          WHERE ingredient_id IN (SELECT w.ingredient_id FROM (${weekItems}) w)`,
       )
       .bind(weekId),
   ])
   const lists = listRes.results as ListRow[]
   const items = itemRes.results as ItemRow[]
-  const prices = priceRes.results as Array<{ ingredientId: number; storeId: number; cents: number }>
+  const prices = priceRes.results as Array<{ ingredientId: number; storeId: number; cents: number; source: PriceSource; updatedAt: number }>
   const stores = await listStores(db)
   const storeIds = stores.map((s) => s.id)
+  // Ingredients already in the pantry: those items go to "Already have".
+  const have = await haveEnoughOf(db, items.map((i) => i.ingredient_id))
 
   // Learned walking order, once per store in use.
   const learned = new Map<number, ReturnType<typeof learnedRanks>>()
@@ -123,7 +129,11 @@ export async function getShoppingWeek(db: D1Database, weekId: string): Promise<S
   }
 
   const views: ShoppingListView[] = lists.map((l) => {
-    const its = items.filter((i) => i.list_id === l.id).map(toItemView)
+    const its = items
+      .filter((i) => i.list_id === l.id)
+      .map((i) => ({ ...toItemView(i), onHand: i.ingredient_id != null && have.has(i.ingredient_id) }))
+    // Totals and the recommendation count only what is still to buy.
+    const toBuy = its.filter((i) => !isAlreadyHave(i))
     return {
       id: l.id,
       weekId: l.week_id,
@@ -133,9 +143,9 @@ export async function getShoppingWeek(db: D1Database, weekId: string): Promise<S
       generatedAt: l.generated_at,
       sort: l.sort,
       items: its,
-      totals: prices.length ? storeTotals(its, prices, storeIds) : [],
-      pinnedTotals: pinnedTotals(its, prices, storeIds),
-      recommendation: recommendStore(its, prices),
+      totals: prices.length ? withReceiptCounts(storeTotals(toBuy, prices, storeIds), toBuy, prices, Date.now()) : [],
+      pinnedTotals: pinnedTotals(toBuy, prices, storeIds),
+      recommendation: recommendStore(toBuy, prices),
       learned: learned.get(l.store_id) ?? { sections: {}, ingredients: {} },
     }
   })
@@ -175,6 +185,14 @@ export interface ItemPatch {
   name?: string
 }
 
+async function keepsInPantry(db: D1Database, ingredientId: number): Promise<boolean> {
+  const row = await db
+    .prepare('SELECT name, section, is_staple FROM ingredients WHERE id = ?1')
+    .bind(ingredientId)
+    .first<{ name: string; section: string | null; is_staple: number }>()
+  return !!row && (row.is_staple === 1 || isPantryBasic(row))
+}
+
 // Checking writes a check_events row (the walking-order signal) and
 // unchecking deletes it again, so a mis-tap teaches nothing.
 export async function patchItem(
@@ -197,8 +215,14 @@ export async function patchItem(
         )
         .bind(item.store_id, item.ingredient_id, item.section, now, item.list_id, id),
     )
+    // Bought: a shelf-stable basic or staple is on hand now (pantry). Fresh
+    // things get used up during the week, so they are not remembered as on hand.
+    if (item.ingredient_id != null && (await keepsInPantry(db, item.ingredient_id)))
+      stmts.push(setPantryStatement(db, item.ingredient_id, true, false, userId, now))
   } else if (patch.checked === false && item.checked_at != null) {
     stmts.push(...uncheckStatements(db, id))
+    // A mis-tap: still needed, so not on hand.
+    if (item.ingredient_id != null) stmts.push(setPantryStatement(db, item.ingredient_id, false, false, userId, now))
   }
   if (patch.manualRank !== undefined) {
     stmts.push(db.prepare('UPDATE shopping_items SET manual_rank = ?2 WHERE id = ?1').bind(id, patch.manualRank))
@@ -275,6 +299,8 @@ export async function addItem(
     ingredient = await findIngredient(db, name)
     if (ingredient) name = ingredient.name
   }
+  // Asked for by hand, so it is needed: not in the "Already have" group.
+  if (ingredient) await setPantryStatement(db, ingredient.id, false, false, null, now).run()
 
   const existing = await db
     .prepare(

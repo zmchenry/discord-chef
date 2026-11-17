@@ -7,6 +7,7 @@ import type { DayEventWire, WeekDay, WeekSlot } from "../../../../shared/plannin
 import { Card } from "../../components/ui";
 import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
+import { DayNutritionBar } from "../nutrition/DayNutritionBar";
 import { dayName, MARKER_LABEL, MEAL_LABEL, shortDate } from "./format";
 
 const MARKER_ICON: Record<Exclude<SlotKind, "recipe">, LucideIcon> = {
@@ -64,6 +65,7 @@ export function DayCard({
           />
         ))}
       </div>
+      <DayNutritionBar date={day.date} />
     </Card>
   );
 }

@@ -25,14 +25,18 @@ import {
   updateRecipe,
 } from './db'
 import { calendarRefreshRoutes } from './calendarRefresh/routes'
+import { discoveryRoutes } from './discovery/routes'
 import { runCalendarCron } from './calendarRefresh/cron'
 import { guidedDinnersRoutes } from './guidedDinners/routes'
 import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
+import { pantryRoutes } from './pantry/routes'
+import { nutritionAfterWrites, nutritionRoutes } from './nutrition/routes'
 import { planningRoutes } from './planning/routes'
 import { priceRoutes } from './prices/routes'
 import { recipePresentationRoutes } from './recipePresentation/routes'
+import { receiptRoutes } from './receipts/routes'
 import {
   localSessionProvider,
   makeAccessSessionProvider,
@@ -148,6 +152,8 @@ app.use('*', async (c, next) => {
   await next()
 })
 
+app.use('*', nutritionAfterWrites)
+
 app.get('/me', requireSession, async (c) => c.json(await getMe(c.env.DB, c.var.session!.userId)))
 
 // --- Recipes ---------------------------------------------------------------
@@ -194,6 +200,8 @@ app.route('/', notificationRoutes)
 app.route('/', planningRoutes)
 app.route('/', guidedDinnersRoutes)
 app.route('/', calendarRefreshRoutes)
+app.route('/', discoveryRoutes)
+app.route('/', nutritionRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 
@@ -210,6 +218,8 @@ app.get('/stores', requireSession, async (c) => {
 
 app.route('/', shoppingRoutes)
 app.route('/', priceRoutes)
+app.route('/', pantryRoutes)
+app.route('/', receiptRoutes)
 
 // Anything under /api that matched no route. Without this the static-asset
 // fallback would answer with index.html and a 200, which looks like a working

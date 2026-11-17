@@ -1,7 +1,8 @@
 import { LoaderCircle } from "lucide-react";
-import { useState, type ComponentType } from "react";
+import { useState } from "react";
 
 import { stepLabel, stepParagraphs, type RecipeStep } from "../../../../shared/recipeStructure";
+import { RecipeNutrition } from "../nutrition/RecipeNutrition";
 import { TagLink, TechniqueText } from "./pills";
 
 // The hero, method, nutrition slot and "More" parts of the recipe screen.
@@ -61,25 +62,10 @@ export function MethodSection({ steps, organizing }: { steps: RecipeStep[]; orga
   );
 }
 
-// Nutrition is another feature's component. It is rendered here only once
-// web/src/features/nutrition/RecipeNutrition.tsx exists (exporting
-// RecipeNutrition, or a default export, taking { recipeId }); until then the
-// glob is empty and the section is left out entirely.
-type NutritionModule = { RecipeNutrition?: ComponentType<{ recipeId: string }>; default?: ComponentType<{ recipeId: string }> };
-const nutritionModules = import.meta.glob<NutritionModule>("../nutrition/RecipeNutrition.tsx", { eager: true });
-const nutritionModule = Object.values(nutritionModules)[0];
-const RecipeNutrition = nutritionModule?.RecipeNutrition ?? nutritionModule?.default;
-
+// Nutrition is the nutrition feature's own card (heading included); this
+// page only mounts it.
 export function NutritionSlot({ recipeId }: { recipeId: string }) {
-  if (!RecipeNutrition) return null;
-  return (
-    <section aria-labelledby="nutrition-title" className="grid gap-3">
-      <h2 id="nutrition-title" className="m-0 font-body text-2xl font-bold">
-        Nutrition
-      </h2>
-      <RecipeNutrition recipeId={recipeId} />
-    </section>
-  );
+  return <RecipeNutrition recipeId={recipeId} />;
 }
 
 export function MoreSection({ tags, notes }: { tags: string[]; notes: string | null }) {

@@ -1,4 +1,4 @@
-import { Check, GripVertical, Trash2 } from "lucide-react";
+import { Check, GripVertical, PackageX, Trash2 } from "lucide-react";
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import { displayIngredientName } from "../../../../shared/normalize";
@@ -23,6 +23,8 @@ interface ListProps {
   onRemove: (item: Row) => void;
   onMove: (item: Row, rank: number) => void;
   onPin: (item: Row, storeId: number | null) => void;
+  // Pantry: the ingredient is out again, so it shows up next time.
+  onUsedUp?: (item: Row) => void;
 }
 
 type RowsProps = Omit<ListProps, "groups"> & { items: Row[] };
@@ -93,13 +95,14 @@ function rankAt(order: Row[], index: number): number {
   return (rank(index - 1) + rank(index)) / 2;
 }
 
-function rowMenu(item: Row, stores: Store[], onPin: RowsProps["onPin"], onRemove: RowsProps["onRemove"]): MenuItem[] {
+function rowMenu(item: Row, stores: Store[], onPin: RowsProps["onPin"], onRemove: RowsProps["onRemove"], onUsedUp?: RowsProps["onUsedUp"]): MenuItem[] {
   const menu: MenuItem[] = item.ingredientId != null ? storeMenuItems(stores, item.storeId, (s) => onPin(item, s)) : [];
+  if (onUsedUp && item.onHand) menu.push({ label: "Used it up", hint: "Goes on the list next time", icon: PackageX, onSelect: () => onUsedUp(item) });
   if (item.source !== "generated") menu.push({ label: "Remove from list", icon: Trash2, destructive: true, onSelect: () => onRemove(item) });
   return menu;
 }
 
-function Rows({ items, recipes, stores, reorder, onCheck, onRemove, onMove, onPin }: RowsProps) {
+function Rows({ items, recipes, stores, reorder, onCheck, onRemove, onMove, onPin, onUsedUp }: RowsProps) {
   const listRef = useRef<HTMLUListElement>(null);
   // While dragging: the item, how far it has moved, the slot it would land in.
   const [drag, setDrag] = useState<{ id: number; startY: number; dy: number; mids: number[]; from: number; to: number } | null>(
@@ -162,7 +165,7 @@ function Rows({ items, recipes, stores, reorder, onCheck, onRemove, onMove, onPi
         const dragging = drag?.id === item.id;
         const canMove = reorder && !item.checked;
         const pin = item.storeId != null ? stores.find((s) => s.id === item.storeId) : undefined;
-        const menu = reorder || item.id < 0 ? [] : rowMenu(item, stores, onPin, onRemove);
+        const menu = reorder || item.id < 0 ? [] : rowMenu(item, stores, onPin, onRemove, onUsedUp);
         return (
           <li
             key={item.id}
