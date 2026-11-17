@@ -7,6 +7,7 @@ import { Modal } from "../components/Modal";
 import { OverflowMenu, type MenuItem } from "../components/OverflowMenu";
 import { Button, Card, Chip, LinkButton, StateMessage } from "../components/ui";
 import { AddToWeekSheet } from "../features/planning/AddToWeekSheet";
+import { useRecipeExperience } from "../features/recipeExperience/recipeActions";
 import { IngredientStorePin } from "../features/shopping/StorePin";
 import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useArchiveRecipe, useRecipe } from "../lib/queries";
@@ -19,6 +20,7 @@ export function RecipeDetailPage() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [added, setAdded] = useState<{ where: string; weekId: string } | null>(null);
+  const rx = useRecipeExperience(recipe.data);
 
   if (recipe.isPending) return <StateMessage title="Loading…" />;
   if (recipe.isError)
@@ -41,8 +43,9 @@ export function RecipeDetailPage() {
   // the week. Everything else is behind the more-actions button.
   const menu: MenuItem[] = [];
   if (live) menu.push({ label: "Edit", icon: Pencil, onSelect: () => navigate(`/recipes/${r.id}/edit`) });
-  if (live && noIngredients) menu.push({ label: "Add to this week", icon: CalendarPlus, onSelect: () => setAdding(true) });
+  if (live && (noIngredients || rx.cookNow)) menu.push({ label: "Add to this week", icon: CalendarPlus, onSelect: () => setAdding(true) });
   if (live && !noIngredients) menu.push({ label: "Fill in by voice", icon: Mic, onSelect: () => navigate(speak) });
+  menu.push(...rx.menu);
   if (r.sourceUrl) {
     const url = r.sourceUrl;
     menu.push({ label: "Open the original", icon: ExternalLink, onSelect: () => window.open(url, "_blank", "noopener,noreferrer") });
@@ -88,7 +91,8 @@ export function RecipeDetailPage() {
           ))}
         </div>
         {live &&
-          (noIngredients ? (
+          (rx.primary ??
+            (noIngredients ? (
             <LinkButton to={speak} className="mt-1 justify-self-start">
               <Mic size={20} aria-hidden="true" />
               Add ingredients by voice
@@ -98,7 +102,7 @@ export function RecipeDetailPage() {
               <CalendarPlus size={20} aria-hidden="true" />
               Add to this week
             </Button>
-          ))}
+            )))}
         {added && (
           <p className="m-0 flex flex-wrap items-center gap-x-2 text-sm font-semibold text-accent" role="status">
             <Check size={16} aria-hidden="true" /> Added to {added.where}.
@@ -156,6 +160,8 @@ export function RecipeDetailPage() {
       >
         {archive.isError && <p className="m-0 text-sm font-semibold text-danger">{archive.error.message}</p>}
       </Modal>
+
+      {rx.dialogs}
 
       {adding && (
         <AddToWeekSheet

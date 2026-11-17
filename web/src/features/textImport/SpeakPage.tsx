@@ -153,6 +153,11 @@ export function SpeakPage() {
           Couldn't read it: {preview.error.message}
         </p>
       )}
+      {recipeId && (
+        <LinkButton to={`/recipes/import?recipe=${recipeId}`} variant="ghost" className="justify-self-start">
+          Import from a link instead
+        </LinkButton>
+      )}
       <p className="m-0 pb-4 text-sm text-muted">You'll check everything in the recipe form before it's saved.</p>
     </div>
   );

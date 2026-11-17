@@ -5,7 +5,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage";
 import { CookPage } from "./features/recipeExperience/CookPage";
-import { ImportPage } from "./features/linkImport/ImportPage";
+import { LinkImportRoute } from "./features/recipeExperience/LinkImportRoute";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { CalendarPage } from "./features/planning/CalendarPage";
@@ -32,7 +32,7 @@ export default function App() {
         <Route path="week" element={<WeekPage />} />
         <Route path="recipes" element={<RecipesPage />} />
         <Route path="recipes/new" element={<RecipeEditPage />} />
-        <Route path="recipes/import" element={<ImportPage />} />
+        <Route path="recipes/import" element={<LinkImportRoute />} />
         <Route path="recipes/speak" element={<SpeakPage />} />
         <Route path="recipes/:id" element={<RecipeDetailPage />} />
         <Route path="recipes/:id/edit" element={<RecipeEditPage />} />
