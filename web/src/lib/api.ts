@@ -1,13 +1,12 @@
 import type { z } from "zod";
 
+import { structuredRecipeSchema, type StructuredRecipeInput } from "../../../shared/recipePresentation";
 import {
   errorResponseSchema,
   ingredientListResponseSchema,
   meSchema,
   recipeListResponseSchema,
-  recipeSchema,
   storeListResponseSchema,
-  type RecipeInput,
   type RecipeListQuery,
 } from "../../../shared/schema";
 
@@ -76,13 +75,15 @@ export const api = {
   listRecipes: (query: RecipeListQuery = {}, signal?: AbortSignal) =>
     request(recipeListResponseSchema, `/recipes${queryString(query)}`, { signal }).then((r) => r.recipes),
 
+  // Recipes come with structure: step objects in `instructions`, and each
+  // ingredient's group and flavors (shared/recipePresentation.ts).
   getRecipe: (id: string, signal?: AbortSignal) =>
-    request(recipeSchema, `/recipes/${encodeURIComponent(id)}`, { signal }),
+    request(structuredRecipeSchema, `/recipes/${encodeURIComponent(id)}`, { signal }),
 
-  createRecipe: (input: RecipeInput) => request(recipeSchema, "/recipes", { method: "POST", body: input }),
+  createRecipe: (input: StructuredRecipeInput) => request(structuredRecipeSchema, "/recipes", { method: "POST", body: input }),
 
-  updateRecipe: (id: string, input: RecipeInput) =>
-    request(recipeSchema, `/recipes/${encodeURIComponent(id)}`, { method: "PUT", body: input }),
+  updateRecipe: (id: string, input: StructuredRecipeInput) =>
+    request(structuredRecipeSchema, `/recipes/${encodeURIComponent(id)}`, { method: "PUT", body: input }),
 
   archiveRecipe: (id: string) => request(null, `/recipes/${encodeURIComponent(id)}`, { method: "DELETE" }),
 

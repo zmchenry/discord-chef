@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Recipe } from "../../../shared/schema";
-import { emptyForm, formToInput, formatMinutes, recipeToForm, validateForm } from "./recipeForm";
+import { emptyForm, formToInput, formatMinutes, keepStepStructure, recipeToForm, validateForm } from "./recipeForm";
 
 const base: Recipe = {
   id: "r1",
@@ -91,5 +91,21 @@ describe("recipe form mapping", () => {
     expect(formatMinutes(45)).toBe("45 min");
     expect(formatMinutes(60)).toBe("1 h");
     expect(formatMinutes(110)).toBe("1 h 50 min");
+  });
+
+  it("keeps step titles and refs through a one-per-line edit", () => {
+    const stored = [
+      { title: "Brown the beef", text: "Brown it.\n\nDrain it.", ingredientRefs: [0] },
+      { title: "Simmer", text: "Simmer 1 h.", ingredientRefs: [] },
+      "Serve.",
+    ];
+    const form = recipeToForm({ ...base, instructions: stored });
+    expect(form.instructions).toBe("Brown it. Drain it.\nSimmer 1 h.\nServe.");
+    expect(keepStepStructure(["Brown it. Drain it.", "Simmer 2 h.", "Serve.", "Eat."], stored)).toEqual([
+      stored[0],
+      { title: "Simmer", text: "Simmer 2 h.", ingredientRefs: [] },
+      "Serve.",
+      "Eat.",
+    ]);
   });
 });

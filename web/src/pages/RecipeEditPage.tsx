@@ -2,13 +2,21 @@ import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import type { Recipe } from "../../../shared/schema";
 import { Button, LinkButton, StateMessage, TextAreaField, TextField } from "../components/ui";
-import { emptyForm, formToInput, recipeToForm, validateForm, type FormErrors, type RecipeFormValues } from "../lib/recipeForm";
+import {
+  emptyForm,
+  formToInput,
+  recipeToForm,
+  validateForm,
+  type FormBase,
+  type FormErrors,
+  type RecipeFormValues,
+} from "../lib/recipeForm";
 import { ApiError } from "../lib/api";
 import { useRecipe, useSaveRecipe } from "../lib/queries";
 import { ImportedNotice } from "../features/linkImport/ImportedNotice";
 import { draftToForm, importedDraftFrom, withDraftExtras, type ImportedDraft } from "../features/linkImport/draft";
+import { useOrganize } from "../features/recipePresentation/queries";
 
 // /recipes/new and /recipes/:id/edit.
 export function RecipeEditPage() {
@@ -25,12 +33,13 @@ export function RecipeEditPage() {
 
 // `imported`: a draft from an import, prefilled and carried through. With
 // `base` too, it is that recipe with spoken ingredients and steps merged in.
-export function RecipeForm({ base, imported }: { base?: Recipe; imported?: ImportedDraft }) {
+export function RecipeForm({ base, imported }: { base?: FormBase; imported?: ImportedDraft }) {
   const [values, setValues] = useState<RecipeFormValues>(() =>
     imported ? draftToForm(imported.draft) : base ? recipeToForm(base) : emptyForm,
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const save = useSaveRecipe(base?.id);
+  const organize = useOrganize();
   const navigate = useNavigate();
 
   const bind = (key: keyof RecipeFormValues) => ({
@@ -47,7 +56,12 @@ export function RecipeForm({ base, imported }: { base?: Recipe; imported?: Impor
     if (Object.keys(found).length) return;
     const input = formToInput(values, base);
     save.mutate(imported ? withDraftExtras(input, imported.draft) : input, {
-      onSuccess: (recipe) => navigate(`/recipes/${recipe.id}`, { replace: true }),
+      onSuccess: (recipe) => {
+        // An imported recipe is tidied up by AI in the background; with no
+        // AI configured this quietly does nothing.
+        if (imported) organize.mutate({ id: recipe.id });
+        navigate(`/recipes/${recipe.id}`, { replace: true });
+      },
     });
   };
 

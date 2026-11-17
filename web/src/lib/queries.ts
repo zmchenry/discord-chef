@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { RecipeInput, RecipeListQuery } from "../../../shared/schema";
+import type { StructuredRecipeInput } from "../../../shared/recipePresentation";
+import type { RecipeListQuery } from "../../../shared/schema";
 import { api } from "./api";
 
 // Query keys in one place so mutations invalidate exactly what they change.
@@ -30,7 +31,7 @@ export const useRecipe = (id: string | undefined) =>
 export function useSaveRecipe(id?: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: RecipeInput) => (id ? api.updateRecipe(id, input) : api.createRecipe(input)),
+    mutationFn: (input: StructuredRecipeInput) => (id ? api.updateRecipe(id, input) : api.createRecipe(input)),
     onSuccess: (recipe) => {
       qc.setQueryData(keys.recipe(recipe.id), recipe);
       void qc.invalidateQueries({ queryKey: [...keys.recipes, "list"] });
