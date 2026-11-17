@@ -6,6 +6,7 @@ import { parseSteps } from "../../../shared/recipeStructure";
 import { Modal } from "../components/Modal";
 import { OverflowMenu, type MenuItem } from "../components/OverflowMenu";
 import { Button, LinkButton, StateMessage } from "../components/ui";
+import { useRecipePhoto } from "../features/dishPhotos/DishPhoto";
 import { AddToWeekSheet } from "../features/planning/AddToWeekSheet";
 import { IngredientsSection } from "../features/recipePresentation/IngredientsSection";
 import { MethodSection, MoreSection, NutritionSlot, RecipeHero } from "../features/recipePresentation/RecipeSections";
@@ -26,6 +27,7 @@ export function RecipeDetailPage() {
   const [tidying, setTidying] = useState(false);
   const [added, setAdded] = useState<{ where: string; weekId: string } | null>(null);
   const rx = useRecipeExperience(recipe.data);
+  const photo = useRecipePhoto(recipe.data);
 
   if (recipe.isPending) return <StateMessage title="Loading…" />;
   if (recipe.isError)
@@ -53,6 +55,7 @@ export function RecipeDetailPage() {
   // more-actions button.
   const menu: MenuItem[] = [];
   if (live) menu.push({ label: "Edit", icon: Pencil, onSelect: () => navigate(`/recipes/${r.id}/edit`) });
+  if (photo.menuItem) menu.push(photo.menuItem);
   if (live && (noIngredients || canCook)) menu.push({ label: "Add to this week", icon: CalendarPlus, onSelect: () => setAdding(true) });
   if (live && !noIngredients) menu.push({ label: "Fill in by voice", icon: Mic, onSelect: () => navigate(speak) });
   if (live && (!noIngredients || steps.length > 0))
@@ -77,6 +80,7 @@ export function RecipeDetailPage() {
         </div>
 
         <RecipeHero imageUrl={r.imageUrl} icon={r.icon} />
+        {photo.element}
 
         <header className="grid gap-3">
           <div className="grid gap-1.5">

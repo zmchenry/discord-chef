@@ -7,6 +7,7 @@ import type { StructuredRecipe as Recipe } from "../../../../shared/recipePresen
 import { Modal } from "../../components/Modal";
 import { Sheet } from "../../components/Sheet";
 import { Button, LinkButton, StateMessage } from "../../components/ui";
+import { CookPhotoCard } from "../dishPhotos/DishPhoto";
 import { cx } from "../../lib/cx";
 import { useRecipe } from "../../lib/queries";
 import { prefersReducedMotion, useWakeLock } from "./device";
@@ -182,6 +183,7 @@ function CookView({ recipe: r }: { recipe: Recipe }) {
               </h1>
               <StepNeeds recipe={r} step={current} factor={factor} key={step} />
               <StepText step={step} text={current.text} timers={state.timers} now={cook.now} onTimer={cook.toggleTimer} />
+              {last && <CookPhotoCard recipe={r} />}
             </>
           ) : (
             <NoSteps recipe={r} factor={factor} checked={state.checked} onToggle={cook.toggleChecked} />
