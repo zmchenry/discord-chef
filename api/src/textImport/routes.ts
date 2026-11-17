@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 
-import { recipeInputSchema, type ErrorResponse, type Recipe, type RecipeInput } from '../../../shared/schema'
+import type { StructuredRecipe } from '../../../shared/recipePresentation'
+import { parseSteps, stepOneLine } from '../../../shared/recipeStructure'
+import { recipeInputSchema, type ErrorResponse, type RecipeInput } from '../../../shared/schema'
 import {
   importTextRequestSchema,
   parseRecipeText,
@@ -39,10 +41,12 @@ function fromParser(text: string, hasTitle: boolean): ScrapedRecipe {
 
 // The existing recipe with the spoken ingredients and steps appended (exact
 // repeats skipped) and any spoken times or servings filled in. Title and
-// tags stay unless the recipe has none.
-function mergeInto(base: Recipe, d: RecipeInput): RecipeInput {
+// tags stay unless the recipe has none. Steps come back one per line; the
+// form keeps the titles of the ones left unchanged.
+function mergeInto(base: StructuredRecipe, d: RecipeInput): RecipeInput {
   const haveIng = new Set(base.ingredients.map((i) => i.rawText.toLowerCase()))
-  const haveSteps = new Set(base.instructions.map((s) => s.toLowerCase()))
+  const baseSteps = parseSteps(base.instructions).map(stepOneLine)
+  const haveSteps = new Set(baseSteps.map((s) => s.toLowerCase()))
   return {
     title: base.title || d.title,
     description: base.description ?? d.description ?? null,
@@ -66,7 +70,7 @@ function mergeInto(base: Recipe, d: RecipeInput): RecipeInput {
       })),
       ...(d.ingredients ?? []).filter((i) => !haveIng.has(i.rawText.toLowerCase())),
     ].slice(0, 100),
-    instructions: [...base.instructions, ...(d.instructions ?? []).filter((s) => !haveSteps.has(s.toLowerCase()))].slice(0, 100),
+    instructions: [...baseSteps, ...(d.instructions ?? []).filter((s) => !haveSteps.has(s.toLowerCase()))].slice(0, 100),
   }
 }
 

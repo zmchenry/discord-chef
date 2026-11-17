@@ -48,6 +48,12 @@ export function stepParagraphs(step: RecipeStep): string[] {
     .filter(Boolean)
 }
 
+// The step on one line (paragraphs joined by a space), for one-per-line
+// editors and duplicate checks.
+export function stepOneLine(step: RecipeStep): string {
+  return stepParagraphs(step).join(' ')
+}
+
 // ---------------------------------------------------------------------------
 // Ingredient groups
 

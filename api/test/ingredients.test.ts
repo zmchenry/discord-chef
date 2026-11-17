@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { normalizeRecipeInput } from '../../shared/recipeInput'
-import { recipeInputSchema, type Ingredient, type Recipe, type RecipeInput } from '../../shared/schema'
+import type { StructuredRecipe } from '../../shared/recipePresentation'
+import { recipeInputSchema, type Ingredient, type RecipeInput } from '../../shared/schema'
 import { createRecipe, ensureUser, getRecipe, searchIngredients } from '../src/db'
 import { call, devEnv, devRequest } from './helpers'
 import { createTestDb, type TestDb } from './setup/testDb'
@@ -17,7 +18,7 @@ afterEach(async () => {
   await testDb.dispose()
 })
 
-async function make(input: RecipeInput): Promise<Recipe> {
+async function make(input: RecipeInput): Promise<StructuredRecipe> {
   const result = await createRecipe(testDb.db, 'zach@example.com', normalizeRecipeInput(recipeInputSchema.parse(input)))
   if ('conflict' in result) throw new Error('unexpected title conflict')
   return result

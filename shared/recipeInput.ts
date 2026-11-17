@@ -7,6 +7,7 @@ import {
   parseIngredientLine,
   type Unit,
 } from './normalize'
+import type { StepInput, StructuredRecipeInputParsed } from './recipePresentation'
 import type { RecipeInputParsed } from './schema'
 
 // Applies the naming rules in ./normalize to a validated recipe body. The
@@ -22,15 +23,29 @@ export interface NormalizedIngredientLine {
   unit: Unit | null
   note: string | null
   optional: boolean
+  // The ingredient group ("egg base"), null when ungrouped.
+  group: string | null
 }
 
-export type NormalizedRecipeInput = Omit<RecipeInputParsed, 'ingredients'> & {
+// A stored step: a plain string, or a titled step with ingredient refs.
+export type NormalizedStep = string | { title: string | null; text: string; ingredientRefs: number[] }
+
+export type NormalizedRecipeInput = Omit<RecipeInputParsed, 'ingredients' | 'instructions'> & {
+  instructions: NormalizedStep[]
   ingredients: NormalizedIngredientLine[]
+}
+
+// A validated body from either recipeInputSchema (plain strings, no groups)
+// or structuredRecipeInputSchema (shared/recipePresentation.ts).
+type IngredientLineInput = RecipeInputParsed['ingredients'][number] & { group?: string | null }
+export type RecipeInputLike = Omit<StructuredRecipeInputParsed, 'ingredients' | 'instructions'> & {
+  instructions: Array<string | Exclude<StepInput, string>>
+  ingredients: IngredientLineInput[]
 }
 
 // Explicit fields on a line win over what parsing rawText finds. An explicit
 // unit outside the fixed set is kept, in the note, rather than dropped.
-export function normalizeIngredientLine(line: RecipeInputParsed['ingredients'][number]): NormalizedIngredientLine {
+export function normalizeIngredientLine(line: IngredientLineInput): NormalizedIngredientLine {
   const parsed = parseIngredientLine(line.rawText)
   let unit = parsed.unit
   let note = line.note !== null ? cleanText(line.note) || null : parsed.note
@@ -45,14 +60,31 @@ export function normalizeIngredientLine(line: RecipeInputParsed['ingredients'][n
     unit,
     note,
     optional: line.optional,
+    group: line.group ? cleanText(line.group).toLowerCase() || null : null,
   }
 }
 
-export function normalizeRecipeInput(input: RecipeInputParsed): NormalizedRecipeInput {
+// Step objects keep their title only when it says something, and their
+// ingredient refs only when they point at a line that exists. A step with
+// neither title nor refs is stored as a plain string.
+function normalizeStep(step: RecipeInputLike['instructions'][number], lineCount: number): NormalizedStep | null {
+  if (typeof step === 'string') return step.trim() || null
+  const text = step.text.trim()
+  if (!text) return null
+  const title = step.title ? cleanText(step.title) || null : null
+  const refs = [...new Set(step.ingredientRefs ?? [])].filter((n) => n < lineCount)
+  return title || refs.length ? { title, text, ingredientRefs: refs } : text
+}
+
+export function normalizeRecipeInput(input: RecipeInputLike): NormalizedRecipeInput {
+  const ingredients = input.ingredients.map(normalizeIngredientLine).filter((l) => l.rawText !== '')
   return {
     ...input,
     title: normalizeRecipeTitle(input.title),
     tags: normalizeTags(input.tags),
-    ingredients: input.ingredients.map(normalizeIngredientLine).filter((l) => l.rawText !== ''),
+    ingredients,
+    instructions: input.instructions
+      .map((s) => normalizeStep(s, ingredients.length))
+      .filter((s): s is NormalizedStep => s !== null),
   }
 }

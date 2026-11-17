@@ -4,7 +4,6 @@ import type { ZodTypeAny } from 'zod'
 
 import {
   ingredientSearchQuerySchema,
-  recipeInputSchema,
   recipeListQuerySchema,
   type ErrorResponse,
   type HealthResponse,
@@ -13,6 +12,7 @@ import {
   type StoreListResponse,
 } from '../../shared/schema'
 import { normalizeRecipeInput } from '../../shared/recipeInput'
+import { structuredRecipeInputSchema } from '../../shared/recipePresentation'
 import {
   archiveRecipe,
   createRecipe,
@@ -32,6 +32,7 @@ import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
 import { planningRoutes } from './planning/routes'
 import { priceRoutes } from './prices/routes'
+import { recipePresentationRoutes } from './recipePresentation/routes'
 import {
   localSessionProvider,
   makeAccessSessionProvider,
@@ -156,6 +157,8 @@ app.get('/recipes', requireSession, validQuery(recipeListQuerySchema), async (c)
   return c.json(body)
 })
 
+app.route('/', recipePresentationRoutes)
+
 app.get('/recipes/:id', requireSession, async (c) => {
   const recipe = await getRecipe(c.env.DB, c.req.param('id'))
   return recipe ? c.json(recipe) : notFound(c)
@@ -163,14 +166,14 @@ app.get('/recipes/:id', requireSession, async (c) => {
 
 // 409 { error: 'conflict', existingId } when another active recipe already
 // has the (normalised) title.
-app.post('/recipes', requireSession, validJson(recipeInputSchema), async (c) => {
+app.post('/recipes', requireSession, validJson(structuredRecipeInputSchema), async (c) => {
   const input = normalizedRecipe(c, c.req.valid('json'))
   if (input instanceof Response) return input
   const result = await createRecipe(c.env.DB, c.var.session!.userId, input)
   return 'conflict' in result ? conflict(c, result.conflict) : c.json(result, 201)
 })
 
-app.put('/recipes/:id', requireSession, validJson(recipeInputSchema), async (c) => {
+app.put('/recipes/:id', requireSession, validJson(structuredRecipeInputSchema), async (c) => {
   const input = normalizedRecipe(c, c.req.valid('json'))
   if (input instanceof Response) return input
   const result = await updateRecipe(c.env.DB, c.req.param('id'), input)

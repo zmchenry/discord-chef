@@ -1,10 +1,10 @@
 import { cleanText, normalizeTag } from '../../shared/normalize'
 import type { NormalizedRecipeInput } from '../../shared/recipeInput'
+import type { StoredStep, StructuredIngredient, StructuredRecipe } from '../../shared/recipePresentation'
+import { parseFlavors } from '../../shared/recipeStructure'
 import type {
   Ingredient,
   Me,
-  Recipe,
-  RecipeIngredient,
   RecipeListQuery,
   RecipeSummary,
   Store,
@@ -68,6 +68,8 @@ interface RecipeIngredientRow {
   unit: string | null
   note: string | null
   optional: number
+  group_label: string | null
+  flavors: string | null
 }
 
 interface IngredientRow {
@@ -94,7 +96,25 @@ function parseStringArray(json: string): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
 }
 
-const toRecipeIngredient = (r: RecipeIngredientRow): RecipeIngredient => ({
+// Strings and well-formed step objects; anything else is dropped.
+function parseStoredSteps(json: string): StoredStep[] {
+  const v: unknown = JSON.parse(json)
+  if (!Array.isArray(v)) return []
+  return v.flatMap((s): StoredStep[] => {
+    if (typeof s === 'string') return [s]
+    if (!s || typeof s !== 'object' || typeof s.text !== 'string') return []
+    const refs: unknown[] = Array.isArray(s.ingredientRefs) ? s.ingredientRefs : []
+    return [
+      {
+        title: typeof s.title === 'string' ? s.title : null,
+        text: s.text,
+        ingredientRefs: refs.filter((n): n is number => Number.isInteger(n) && (n as number) >= 0),
+      },
+    ]
+  })
+}
+
+const toRecipeIngredient = (r: RecipeIngredientRow): StructuredIngredient => ({
   id: r.id,
   position: r.position,
   rawText: r.raw_text,
@@ -104,6 +124,8 @@ const toRecipeIngredient = (r: RecipeIngredientRow): RecipeIngredient => ({
   unit: r.unit,
   note: r.note,
   optional: r.optional === 1,
+  group: r.group_label,
+  flavors: parseFlavors(r.flavors),
 })
 
 const toIngredient = (r: IngredientRow): Ingredient => ({
@@ -193,14 +215,14 @@ export async function listRecipes(db: D1Database, query: RecipeListQuery = {}): 
 
 // Returns archived recipes too: plans that reference one still need to show
 // it. One round trip via batch.
-export async function getRecipe(db: D1Database, id: string): Promise<Recipe | null> {
+export async function getRecipe(db: D1Database, id: string): Promise<StructuredRecipe | null> {
   const [recipeRes, tagRes, ingRes] = await db.batch([
     db.prepare('SELECT * FROM recipes WHERE id = ?1').bind(id),
     db.prepare('SELECT tag FROM recipe_tags WHERE recipe_id = ?1 ORDER BY tag').bind(id),
     db
       .prepare(
         `SELECT ri.id, ri.position, ri.raw_text, ri.ingredient_id, i.name AS ingredient_name,
-                ri.quantity, ri.unit, ri.note, ri.optional
+                ri.quantity, ri.unit, ri.note, ri.optional, ri.group_label, i.flavors
          FROM recipe_ingredients ri
          LEFT JOIN ingredients i ON i.id = ri.ingredient_id
          WHERE ri.recipe_id = ?1
@@ -220,7 +242,7 @@ export async function getRecipe(db: D1Database, id: string): Promise<Recipe | nu
     servings: row.servings,
     prepMinutes: row.prep_minutes,
     cookMinutes: row.cook_minutes,
-    instructions: parseStringArray(row.instructions),
+    instructions: parseStoredSteps(row.instructions),
     notes: row.notes,
     tags: (tagRes.results as Array<{ tag: string }>).map((t) => t.tag),
     ingredients: (ingRes.results as RecipeIngredientRow[]).map(toRecipeIngredient),
@@ -280,15 +302,25 @@ function replaceChildrenStatements(db: D1Database, recipeId: string, input: Norm
       db
         .prepare(
           `INSERT INTO recipe_ingredients
-             (recipe_id, position, raw_text, ingredient_id, quantity, unit, note, optional)
+             (recipe_id, position, raw_text, ingredient_id, quantity, unit, note, optional, group_label)
            VALUES (?1, ?2, ?3,
              coalesce(
                (SELECT id FROM ingredients WHERE name = ?4),
                (SELECT i.id FROM ingredients i, json_each(i.aliases) a WHERE a.value = ?4 ORDER BY i.id LIMIT 1)
              ),
-             ?5, ?6, ?7, ?8)`,
+             ?5, ?6, ?7, ?8, ?9)`,
         )
-        .bind(recipeId, position, line.rawText, line.name, line.quantity, line.unit, line.note, line.optional ? 1 : 0),
+        .bind(
+          recipeId,
+          position,
+          line.rawText,
+          line.name,
+          line.quantity,
+          line.unit,
+          line.note,
+          line.optional ? 1 : 0,
+          line.group,
+        ),
     )
   })
 
@@ -305,7 +337,7 @@ export async function findActiveRecipeByTitle(db: D1Database, title: string, exc
   return row?.id ?? null
 }
 
-export type SaveResult = Recipe | { conflict: string } | null
+export type SaveResult = StructuredRecipe | { conflict: string } | null
 
 // Returns { conflict: existingId } when another active recipe has the title.
 export async function createRecipe(
@@ -313,7 +345,7 @@ export async function createRecipe(
   userId: string,
   input: NormalizedRecipeInput,
   now = Date.now(),
-): Promise<Recipe | { conflict: string }> {
+): Promise<StructuredRecipe | { conflict: string }> {
   const existing = await findActiveRecipeByTitle(db, input.title)
   if (existing) return { conflict: existing }
   const id = crypto.randomUUID()
