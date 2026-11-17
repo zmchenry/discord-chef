@@ -11,6 +11,7 @@ import { IngredientsSection } from "../features/recipePresentation/IngredientsSe
 import { MethodSection, MoreSection, NutritionSlot, RecipeHero } from "../features/recipePresentation/RecipeSections";
 import { TidyUpModal } from "../features/recipePresentation/TidyUpModal";
 import { useOrganizing } from "../features/recipePresentation/queries";
+import { useRecipeExperience } from "../features/recipeExperience/recipeActions";
 import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useArchiveRecipe, useRecipe } from "../lib/queries";
 
@@ -24,6 +25,7 @@ export function RecipeDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [tidying, setTidying] = useState(false);
   const [added, setAdded] = useState<{ where: string; weekId: string } | null>(null);
+  const rx = useRecipeExperience(recipe.data);
 
   if (recipe.isPending) return <StateMessage title="Loading…" />;
   if (recipe.isError)
@@ -55,6 +57,8 @@ export function RecipeDetailPage() {
   if (live && !noIngredients) menu.push({ label: "Fill in by voice", icon: Mic, onSelect: () => navigate(speak) });
   if (live && (!noIngredients || steps.length > 0))
     menu.push({ label: "Tidy up with AI", icon: Sparkles, onSelect: () => setTidying(true), disabled: organizing });
+  // Re-import from a link (cooking mode feature); "Let's cook" is already the primary.
+  menu.push(...rx.menu.filter((m) => m.label !== "Cook"));
   if (r.sourceUrl) {
     const url = r.sourceUrl;
     menu.push({ label: "Open the original", icon: ExternalLink, onSelect: () => window.open(url, "_blank", "noopener,noreferrer") });
@@ -145,6 +149,7 @@ export function RecipeDetailPage() {
       </Modal>
 
       <TidyUpModal recipe={r} open={tidying} onClose={() => setTidying(false)} />
+      {rx.dialogs}
 
       {adding && (
         <AddToWeekSheet

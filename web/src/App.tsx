@@ -5,7 +5,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage";
 import { IdeasPage } from "./features/discovery/IdeasPage";
-import { ImportPage } from "./features/linkImport/ImportPage";
+import { CookPage } from "./features/recipeExperience/CookPage";
+import { LinkImportRoute } from "./features/recipeExperience/LinkImportRoute";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { GoalsPage } from "./features/nutrition/GoalsPage";
 import { WeekNutritionPage } from "./features/nutrition/WeekNutritionPage";
@@ -29,13 +30,14 @@ const ModalDemo = import.meta.env.DEV
 export default function App() {
   return (
     <Routes>
+      <Route path="recipes/:id/cook" element={<CookPage />} />
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/week" replace />} />
         <Route path="week" element={<WeekPage />} />
         <Route path="week/nutrition" element={<WeekNutritionPage />} />
         <Route path="recipes" element={<RecipesPage />} />
         <Route path="recipes/new" element={<RecipeEditPage />} />
-        <Route path="recipes/import" element={<ImportPage />} />
+        <Route path="recipes/import" element={<LinkImportRoute />} />
         <Route path="recipes/speak" element={<SpeakPage />} />
         <Route path="recipes/ideas" element={<IdeasPage />} />
         <Route path="recipes/:id" element={<RecipeDetailPage />} />
