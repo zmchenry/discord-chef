@@ -7,6 +7,7 @@ import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage"
 import { ImportPage } from "./features/linkImport/ImportPage";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
+import { PantryPage } from "./features/pantry/PantryPage";
 import { CalendarPage } from "./features/planning/CalendarPage";
 import { ThemesPage } from "./features/planning/ThemesPage";
 import { WeekPage } from "./features/planning/WeekPage";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="more/calendar" element={<CalendarPage />} />
         <Route path="more/breakfast-lunch" element={<BreakfastLunchPage />} />
         <Route path="more/appearance" element={<AppearancePage />} />
+        <Route path="more/pantry" element={<PantryPage />} />
         {ModalDemo && (
           <Route
             path="dev/modal"
