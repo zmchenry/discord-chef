@@ -8,6 +8,7 @@ import { ReasonChips } from "../../components/ReasonChips";
 import { Sheet } from "../../components/Sheet";
 import { Button, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { PortionSection } from "../nutrition/PortionSection";
 import { dayName, MARKER_LABEL, MEAL_LABEL, shortDate } from "./format";
 import { useSuggestions, type SlotChange } from "./queries";
 
@@ -93,6 +94,7 @@ export function SlotSheet({
       </header>
 
       <div className="grid gap-3 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3">
+        {slot && <PortionSection weekId={weekId} date={day.date} meal={meal} />}
         {slot && copying && (
           <section aria-label="Copy to other days" className="rounded-sm bg-surface p-3">
             <p className="m-0 flex items-center gap-2 text-sm font-semibold">

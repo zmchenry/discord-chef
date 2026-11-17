@@ -3,6 +3,7 @@ import {
   CalendarOff,
   Check,
   ClipboardCheck,
+  Gauge,
   CookingPot,
   Coffee,
   RefreshCw,
@@ -87,6 +88,7 @@ export function WeekPage() {
       menu.push({ label: "Shopping list", icon: ShoppingBasket, onSelect: () => run("shop") });
     if (week.data.calendar !== "none")
       menu.push({ label: "Refresh calendar", icon: RefreshCw, onSelect: () => refresh.mutate(), disabled: refresh.isPending });
+    menu.push({ label: "Nutrition", icon: Gauge, onSelect: () => navigate(`/week/nutrition?week=${weekId}`) });
     menu.push({ label: "Day themes", icon: Tag, onSelect: () => navigate("/more/themes") });
     menu.push({ label: "Calendar settings", icon: CalendarCog, onSelect: () => navigate("/more/calendar") });
   }
