@@ -17,6 +17,7 @@ import { weekDates, weekIdSchema } from '../../../shared/planningApi'
 import { mealSchema, type ErrorResponse } from '../../../shared/schema'
 import { weekConstraints } from '../planning/calendar'
 import { getHousehold } from '../planning/db'
+import { getMembers } from '../household/db'
 import { requireSession, type AppEnv } from '../session'
 import { waitUntilFor } from '../shopping/prices'
 import { getGoals, goalRows, ingredientIdsFor, loadRecipes, recipeExists, saveGoals, setPortions, weekSlots } from './db'
@@ -75,7 +76,7 @@ export async function weekNutritionView(env: Env, weekId: string, defer: Defer):
   const dates = weekDates(weekId)
   const [household, goals, slots] = await Promise.all([getHousehold(db), getGoals(db), weekSlots(db, weekId)])
   const people = household.people
-  const calendar = await weekConstraints(db, dates, household)
+  const [calendar, members] = await Promise.all([weekConstraints(db, dates, household), getMembers(db, people)])
   const loaded = await loadRecipes(db, slots.flatMap((s) => (s.recipeId ? [s.recipeId] : [])))
   const missing = [...new Set([...loaded.values()].flatMap((r) => r.missingIds))]
   const filling = missing.length > 0 && wouldAsk(env, missing)
@@ -90,8 +91,18 @@ export async function weekNutritionView(env: Env, weekId: string, defer: Defer):
     slots,
     recipes,
     away: Object.fromEntries(dates.map((d) => [d, awayPeople(calendar.byDay[d] ?? [], people)])),
+    members,
+    recipeServings: Object.fromEntries([...loaded].map(([id, r]) => [id, r.nutrition.servings])),
   })
-  return { weekId, people, goals: goalRows(people, goals), days: result.days, week: result.people, filling }
+  return {
+    weekId,
+    people,
+    members: members.map((m) => ({ name: m.name, kind: m.kind })),
+    goals: goalRows(people, goals),
+    days: result.days,
+    week: result.people,
+    filling,
+  }
 }
 
 function weekParam(c: Context): string | null {
@@ -105,8 +116,8 @@ nutrition.get('/nutrition/weeks/:start', async (c) => {
   return c.json(await weekNutritionView(c.env, weekId, waitUntilFor(c)))
 })
 
-// One meal's split. Only people in the household are kept, in quarter
-// servings; {portions: null} goes back to the default.
+// One meal's split. Only household members (adults and kids) are kept, in
+// quarter servings; {portions: null} goes back to the default.
 nutrition.put('/nutrition/weeks/:start/portions/:date/:meal', validJson(portionsInputSchema), async (c) => {
   const weekId = weekParam(c)
   const meal = mealSchema.safeParse(c.req.param('meal'))
@@ -114,7 +125,7 @@ nutrition.put('/nutrition/weeks/:start/portions/:date/:meal', validJson(portions
   if (!weekId || !meal.success || !weekDates(weekId).includes(date)) return notFound(c)
   const slot = (await weekSlots(c.env.DB, weekId)).find((s) => s.date === date && s.meal === meal.data)
   if (!slot) return notFound(c)
-  const { people } = await getHousehold(c.env.DB)
+  const people = (await getMembers(c.env.DB)).map((m) => m.name)
   const input = c.req.valid('json').portions
   const portions = input
     ? Object.fromEntries(people.filter((p) => p in input).map((p) => [p, roundPortion(input[p]!)]))

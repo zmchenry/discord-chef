@@ -1,6 +1,8 @@
 // Week nutrition per person, and the default portion split. Pure: no I/O.
 
-import { MEALS, type Meal, type SlotKind } from '../schema'
+import type { Member } from '../household'
+import { adult, planServings, type MealServings } from '../household/servings'
+import type { Meal, SlotKind } from '../schema'
 import {
   addNutrients,
   confidenceOf,
@@ -21,21 +23,9 @@ export interface Goal {
 export type Goals = Record<string, Goal>
 export type Portions = Record<string, number>
 
-// Quarter servings: fine enough to portion, coarse enough to read.
-const STEP = 0.25
-export const roundPortion = (n: number) => Math.max(0, Math.round(n / STEP) * STEP)
-
-// Each person at home gets one serving on average, split by their share of
-// the kcal goals ("Zach 1.25 · Liz 0.75"). Even when anyone at home has no
-// kcal goal.
-export function defaultPortions(home: readonly string[], goals: Goals): Portions {
-  const kcal = home.map((p) => goals[p]?.kcal ?? null)
-  const sum = kcal.reduce<number>((a, k) => a + (k ?? 0), 0)
-  const even = kcal.some((k) => !k) || sum <= 0
-  return Object.fromEntries(
-    home.map((p, i) => [p, even ? 1 : Math.max(STEP, roundPortion((home.length * kcal[i]!) / sum))]),
-  )
-}
+// The default split and the quarter-serving rounding live with the
+// household servings math; re-exported here for existing callers.
+export { defaultPortions, roundPortion } from '../household/servings'
 
 // Who a day's calendar constraints say is away. The calendar writes
 // "Liz away → cook for 1"; a reason naming nobody marks nobody away.
@@ -68,6 +58,12 @@ export interface WeekNutritionInput {
   recipes: Record<string, { title: string; nutrition: RecipeNutritionResult }>
   // date -> people away that day.
   away: Record<string, readonly string[]>
+  // Everyone who eats at home, kids included. Absent: `people` as adults
+  // who eat every meal at home.
+  members?: readonly Member[]
+  // recipe id -> servings as written, for recipes with no nutrition too.
+  // Absent: the servings of `recipes`.
+  recipeServings?: Record<string, number | null>
 }
 
 // known: we have numbers. gap: eaten but unknown (eat out, skip, leftovers
@@ -85,6 +81,8 @@ export interface MealNutrition {
   custom: boolean
   perServing: Nutrients | null
   confidence: Confidence | null
+  // Who the meal feeds and how far the recipe scales (household/servings).
+  serves: Pick<MealServings, 'adults' | 'kids' | 'total' | 'leftovers' | 'factor'>
 }
 
 export interface PersonDay {
@@ -116,33 +114,33 @@ export interface WeekNutritionResult {
 }
 
 export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
-  const { dates, people, goals, recipes } = input
-  const slotAt = new Map(input.slots.map((s) => [`${s.date}:${s.meal}`, s]))
+  const { dates, people, recipes } = input
   const scoreSum: Record<string, number> = {}
-  let lastDinner: string | null = null
+  const servings = planServings({
+    dates,
+    members: input.members ?? people.map(adult),
+    goals: input.goals,
+    slots: input.slots,
+    away: input.away,
+    recipeServings:
+      input.recipeServings ?? Object.fromEntries(Object.entries(recipes).map(([id, r]) => [id, r.nutrition.servings])),
+  })
 
-  const days = dates.map((date): DayNutrition => {
+  const days = dates.map((date, i): DayNutrition => {
     const away = new Set(input.away[date] ?? [])
     const home = people.filter((p) => !away.has(p))
-    const fallback = defaultPortions(home, goals)
     const day: Record<string, PersonDay> = Object.fromEntries(
       people.map((p) => [p, { home: !away.has(p), totals: ZERO, known: 0, gaps: 0 }]),
     )
-    const previousDinner = lastDinner
 
-    const meals = MEALS.map((meal): MealNutrition => {
-      const slot = slotAt.get(`${date}:${meal}`)
-      const stored = slot?.portions ?? null
-      const portions: Portions = Object.fromEntries(home.map((p) => [p, stored?.[p] ?? fallback[p] ?? 1]))
-      const sourceId = slot?.kind === 'recipe' ? slot.recipeId : slot?.kind === 'leftovers' ? previousDinner : null
-      const recipe = sourceId ? recipes[sourceId] : undefined
-      if (meal === 'dinner' && slot?.kind === 'recipe' && slot.recipeId) lastDinner = slot.recipeId
-      const status: MealStatus = !slot ? 'empty' : recipe ? 'known' : 'gap'
-
+    const meals = servings.slice(i * 3, i * 3 + 3).map((s): MealNutrition => {
+      const recipe = s.sourceId ? recipes[s.sourceId] : undefined
+      const status: MealStatus = !s.kind ? 'empty' : recipe ? 'known' : 'gap'
+      // Someone home that day but not eating this meal at home is a gap too.
       for (const p of home) {
         const d = day[p]!
-        if (recipe) {
-          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, portions[p]!)
+        if (recipe && p in s.portions) {
+          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, s.portions[p]!)
           d.known++
           scoreSum[p] = (scoreSum[p] ?? 0) + recipe.nutrition.score
         } else {
@@ -150,15 +148,16 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
         }
       }
       return {
-        meal,
-        kind: slot?.kind ?? null,
+        meal: s.meal,
+        kind: s.kind,
         status,
-        recipeId: recipe ? sourceId : null,
+        recipeId: recipe ? s.sourceId : null,
         title: recipe?.title ?? null,
-        portions,
-        custom: !!stored,
+        portions: s.portions,
+        custom: s.custom,
         perServing: recipe ? roundNutrients(recipe.nutrition.perServing) : null,
         confidence: recipe ? recipe.nutrition.confidence : null,
+        serves: { adults: s.adults, kids: s.kids, total: s.total, leftovers: s.leftovers, factor: s.factor },
       }
     })
     for (const p of people) day[p]!.totals = roundNutrients(day[p]!.totals)
