@@ -56,7 +56,7 @@ describe('API', () => {
   const items = (w: ShoppingWeekResponse) => Object.fromEntries(w.lists[0].items.map((i) => [i.name, i])) as Record<string, ShoppingItemView>
   const have = (w: ShoppingWeekResponse) => splitAlreadyHave(w.lists[0].items).have.map((i) => i.name).sort()
 
-  it('on-hand items move to Already have, and checking one off puts it in the pantry', async () => {
+  it('on-hand items move to Already have, and checking off a basic puts it back in the pantry', async () => {
     const r = await json<Recipe>(
       devRequest('POST', '/api/recipes', {
         title: 'Pasta',
@@ -91,12 +91,16 @@ describe('API', () => {
     week = await json<ShoppingWeekResponse>(devRequest('GET', `/api/weeks/${WEEK}/shopping`))
     expect(have(week)).toEqual(['salt', 'spaghetti'])
 
-    // Checking off the parmesan puts it in the pantry; it stays checked on this list.
+    // Checking off the olive oil (a basic) puts it back in the pantry; it stays checked on this list.
+    const oliveOil = r.ingredients[1].ingredientId!
+    await json(devRequest('PATCH', `/api/shopping/items/${items(week)['olive oil'].id}`, { checked: true }))
+    // Checking off the parmesan (fresh) does not: next week it is needed again.
     await json(devRequest('PATCH', `/api/shopping/items/${items(week).parmesan.id}`, { checked: true }))
     const after = await json<PantryResponse>(devRequest('GET', '/api/pantry'))
-    expect(after.items.find((i) => i.ingredientId === parmesan)).toMatchObject({ onHand: true, assumed: false })
+    expect(after.items.find((i) => i.ingredientId === oliveOil)).toMatchObject({ onHand: true, assumed: false })
+    expect(after.items.find((i) => i.ingredientId === parmesan)).toMatchObject({ onHand: false })
     week = await json<ShoppingWeekResponse>(devRequest('GET', `/api/weeks/${WEEK}/shopping`))
-    expect(items(week).parmesan).toMatchObject({ onHand: true })
+    expect(items(week)['olive oil']).toMatchObject({ onHand: true })
     expect(have(week)).toEqual(['salt', 'spaghetti'])
   })
 })

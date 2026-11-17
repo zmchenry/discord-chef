@@ -6,6 +6,7 @@ import { isAlreadyHave } from '../../../shared/shopping/pantry'
 import { learnedRanks } from '../../../shared/shopping/sort'
 import { pinnedTotals, recommendStore, storeTotals } from '../../../shared/shopping/store'
 import { listStores } from '../db'
+import { isPantryBasic } from '../../../shared/pantry'
 import { haveEnoughOf, setPantryStatement } from '../pantry/db'
 
 // Data access for shopping. Same conventions as api/src/db.ts: the D1
@@ -183,6 +184,14 @@ export interface ItemPatch {
   name?: string
 }
 
+async function keepsInPantry(db: D1Database, ingredientId: number): Promise<boolean> {
+  const row = await db
+    .prepare('SELECT name, section, is_staple FROM ingredients WHERE id = ?1')
+    .bind(ingredientId)
+    .first<{ name: string; section: string | null; is_staple: number }>()
+  return !!row && (row.is_staple === 1 || isPantryBasic(row))
+}
+
 // Checking writes a check_events row (the walking-order signal) and
 // unchecking deletes it again, so a mis-tap teaches nothing.
 export async function patchItem(
@@ -205,8 +214,10 @@ export async function patchItem(
         )
         .bind(item.store_id, item.ingredient_id, item.section, now, item.list_id, id),
     )
-    // Bought: the ingredient is on hand now (pantry).
-    if (item.ingredient_id != null) stmts.push(setPantryStatement(db, item.ingredient_id, true, false, userId, now))
+    // Bought: a shelf-stable basic or staple is on hand now (pantry). Fresh
+    // things get used up during the week, so they are not remembered as on hand.
+    if (item.ingredient_id != null && (await keepsInPantry(db, item.ingredient_id)))
+      stmts.push(setPantryStatement(db, item.ingredient_id, true, false, userId, now))
   } else if (patch.checked === false && item.checked_at != null) {
     stmts.push(...uncheckStatements(db, id))
     // A mis-tap: still needed, so not on hand.
