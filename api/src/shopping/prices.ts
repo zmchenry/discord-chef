@@ -10,7 +10,7 @@ interface PriceRow {
   store_id: number
   cents: number
   unit: string | null
-  source: 'estimate' | 'manual'
+  source: 'estimate' | 'manual' | 'receipt'
   updated_at: number
 }
 

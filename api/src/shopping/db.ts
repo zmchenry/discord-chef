@@ -8,6 +8,7 @@ import { pinnedTotals, recommendStore, storeTotals } from '../../../shared/shopp
 import { listStores } from '../db'
 import { isPantryBasic } from '../../../shared/pantry'
 import { haveEnoughOf, setPantryStatement } from '../pantry/db'
+import { withReceiptCounts, type PriceSource } from '../../../shared/receipts/prices'
 
 // Data access for shopping. Same conventions as api/src/db.ts: the D1
 // binding is passed in, and the snake_case -> camelCase mapping lives here.
@@ -101,14 +102,14 @@ export async function getShoppingWeek(db: D1Database, weekId: string): Promise<S
       .bind(weekId),
     db
       .prepare(
-        `SELECT ingredient_id AS ingredientId, store_id AS storeId, cents FROM ingredient_prices
+        `SELECT ingredient_id AS ingredientId, store_id AS storeId, cents, source, updated_at AS updatedAt FROM ingredient_prices
          WHERE ingredient_id IN (SELECT w.ingredient_id FROM (${weekItems}) w)`,
       )
       .bind(weekId),
   ])
   const lists = listRes.results as ListRow[]
   const items = itemRes.results as ItemRow[]
-  const prices = priceRes.results as Array<{ ingredientId: number; storeId: number; cents: number }>
+  const prices = priceRes.results as Array<{ ingredientId: number; storeId: number; cents: number; source: PriceSource; updatedAt: number }>
   const stores = await listStores(db)
   const storeIds = stores.map((s) => s.id)
   // Ingredients already in the pantry: those items go to "Already have".
@@ -142,7 +143,7 @@ export async function getShoppingWeek(db: D1Database, weekId: string): Promise<S
       generatedAt: l.generated_at,
       sort: l.sort,
       items: its,
-      totals: prices.length ? storeTotals(toBuy, prices, storeIds) : [],
+      totals: prices.length ? withReceiptCounts(storeTotals(toBuy, prices, storeIds), toBuy, prices, Date.now()) : [],
       pinnedTotals: pinnedTotals(toBuy, prices, storeIds),
       recommendation: recommendStore(toBuy, prices),
       learned: learned.get(l.store_id) ?? { sections: {}, ingredients: {} },

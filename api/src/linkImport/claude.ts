@@ -113,25 +113,33 @@ export async function askClaudeForRecipe(opts: {
   }
 }
 
+// A user content block: text, or a base64 image (JPEG/PNG/WebP/GIF, at
+// most 5 MB as base64). Put images before the text that asks about them.
+export type ClaudeContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; source: { type: 'base64'; media_type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'; data: string } }
+
 // One structured-output call to the Messages API at low effort: the reply
-// always matches `schema`. Used by the recipe readers above and the price
-// estimates (api/src/shopping/prices.ts). Throws ClaudeError on any failure,
-// worded with `who`; null when the model refuses.
+// always matches `schema`. Used by the recipe readers above, the price
+// estimates (api/src/shopping/prices.ts) and receipt reading (content
+// blocks with an image, api/src/receipts/claude.ts). Throws ClaudeError on
+// any failure, worded with `who`; null when the model refuses.
 export async function askClaudeJson<T>(opts: {
   system: string
-  content: string
+  content: string | ClaudeContentBlock[]
   schema: object
   apiKey: string
   logEvent: string
   who?: string
   maxTokens?: number
+  timeoutMs?: number
 }): Promise<T | null> {
-  const { system, content, schema, apiKey, logEvent, who = 'Claude', maxTokens = 16000 } = opts
+  const { system, content, schema, apiKey, logEvent, who = 'Claude', maxTokens = 16000, timeoutMs = TIMEOUT_MS } = opts
   let res: Response
   try {
     res = await fetch(MESSAGES_URL, {
       method: 'POST',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       headers: {
         'content-type': 'application/json',
         'x-api-key': apiKey,
