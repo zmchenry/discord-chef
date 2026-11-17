@@ -32,6 +32,7 @@ import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
 import { notificationRoutes } from './notifications/routes'
 import { pantryRoutes } from './pantry/routes'
+import { nutritionAfterWrites, nutritionRoutes } from './nutrition/routes'
 import { planningRoutes } from './planning/routes'
 import { priceRoutes } from './prices/routes'
 import {
@@ -149,6 +150,8 @@ app.use('*', async (c, next) => {
   await next()
 })
 
+app.use('*', nutritionAfterWrites)
+
 app.get('/me', requireSession, async (c) => c.json(await getMe(c.env.DB, c.var.session!.userId)))
 
 // --- Recipes ---------------------------------------------------------------
@@ -194,6 +197,7 @@ app.route('/', planningRoutes)
 app.route('/', guidedDinnersRoutes)
 app.route('/', calendarRefreshRoutes)
 app.route('/', discoveryRoutes)
+app.route('/', nutritionRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 

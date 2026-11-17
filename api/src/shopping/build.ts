@@ -51,7 +51,10 @@ export async function buildListForWeek(
   const [slotRes, listRes, itemRes, storeRes] = await db.batch([
     db
       .prepare(
-        `SELECT ps.id AS slot_id, ps.day, ps.recipe_id, ps.servings AS slot_servings, r.servings AS recipe_servings,
+        `SELECT ps.id AS slot_id, ps.day, ps.recipe_id, r.servings AS recipe_servings,
+                -- A portion split bigger than the recipe scales it up (never down: leftovers).
+                coalesce((SELECT CASE WHEN p.total > r.servings THEN p.total END FROM plan_slot_portions p
+                          WHERE p.slot_id = ps.id AND p.slot_key = ps.recipe_id), ps.servings) AS slot_servings,
                 ri.ingredient_id, i.name AS ingredient_name, ri.raw_text, ri.quantity, ri.unit,
                 i.section, coalesce(i.perishable, 0) AS perishable
          FROM plan_slots ps

@@ -7,6 +7,8 @@ import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage"
 import { IdeasPage } from "./features/discovery/IdeasPage";
 import { ImportPage } from "./features/linkImport/ImportPage";
 import { SpeakPage } from "./features/textImport/SpeakPage";
+import { GoalsPage } from "./features/nutrition/GoalsPage";
+import { WeekNutritionPage } from "./features/nutrition/WeekNutritionPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { PantryPage } from "./features/pantry/PantryPage";
 import { CalendarPage } from "./features/planning/CalendarPage";
@@ -30,6 +32,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/week" replace />} />
         <Route path="week" element={<WeekPage />} />
+        <Route path="week/nutrition" element={<WeekNutritionPage />} />
         <Route path="recipes" element={<RecipesPage />} />
         <Route path="recipes/new" element={<RecipeEditPage />} />
         <Route path="recipes/import" element={<ImportPage />} />
@@ -43,6 +46,7 @@ export default function App() {
         <Route path="more/themes" element={<ThemesPage />} />
         <Route path="more/calendar" element={<CalendarPage />} />
         <Route path="more/breakfast-lunch" element={<BreakfastLunchPage />} />
+        <Route path="more/goals" element={<GoalsPage />} />
         <Route path="more/appearance" element={<AppearancePage />} />
         <Route path="more/pantry" element={<PantryPage />} />
         {ModalDemo && (
