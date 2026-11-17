@@ -133,3 +133,69 @@
   --color-danger: #f28b78;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
 }
+
+/*
+ * Tints: small soft pill fills (flavor pills) and their ink, which also
+ * colours outlined tag pills. Never a background or a card. Shared by both
+ * palettes (they are hue-coded, not brand-coded). Ink on its fill is at
+ * least 6:1 in light and 8:1 in dark.
+ */
+:root,
+:root[data-palette="sage"] {
+  --color-tint-red: #fde2e1;
+  --color-tint-red-ink: #9f1d1d;
+  --color-tint-orange: #fde6d3;
+  --color-tint-orange-ink: #8f3d0a;
+  --color-tint-yellow: #fbefc4;
+  --color-tint-yellow-ink: #6f5200;
+  --color-tint-green: #ddf1dc;
+  --color-tint-green-ink: #23622a;
+  --color-tint-teal: #d6efec;
+  --color-tint-teal-ink: #10605a;
+  --color-tint-blue: #dde8fa;
+  --color-tint-blue-ink: #1d4f91;
+  --color-tint-purple: #ece3fa;
+  --color-tint-purple-ink: #5b3596;
+  --color-tint-pink: #fbe1ee;
+  --color-tint-pink-ink: #962457;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]),
+  :root[data-palette="sage"]:not([data-mode="light"]) {
+    --color-tint-red: #3d1c1c;
+    --color-tint-red-ink: #ffb4ad;
+    --color-tint-orange: #3c2716;
+    --color-tint-orange-ink: #ffc08f;
+    --color-tint-yellow: #363015;
+    --color-tint-yellow-ink: #f2d675;
+    --color-tint-green: #1c3220;
+    --color-tint-green-ink: #9fd8a4;
+    --color-tint-teal: #16312f;
+    --color-tint-teal-ink: #8ed6cc;
+    --color-tint-blue: #1a2840;
+    --color-tint-blue-ink: #a7c4ff;
+    --color-tint-purple: #2b2340;
+    --color-tint-purple-ink: #cbb4ff;
+    --color-tint-pink: #3a1d2c;
+    --color-tint-pink-ink: #ffb0d3;
+  }
+}
+:root[data-mode="dark"],
+:root[data-palette="sage"][data-mode="dark"] {
+  --color-tint-red: #3d1c1c;
+  --color-tint-red-ink: #ffb4ad;
+  --color-tint-orange: #3c2716;
+  --color-tint-orange-ink: #ffc08f;
+  --color-tint-yellow: #363015;
+  --color-tint-yellow-ink: #f2d675;
+  --color-tint-green: #1c3220;
+  --color-tint-green-ink: #9fd8a4;
+  --color-tint-teal: #16312f;
+  --color-tint-teal-ink: #8ed6cc;
+  --color-tint-blue: #1a2840;
+  --color-tint-blue-ink: #a7c4ff;
+  --color-tint-purple: #2b2340;
+  --color-tint-purple-ink: #cbb4ff;
+  --color-tint-pink: #3a1d2c;
+  --color-tint-pink-ink: #ffb0d3;
+}

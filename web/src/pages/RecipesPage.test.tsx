@@ -29,13 +29,13 @@ function mockFetch(recipes: RecipeSummary[]) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("RecipesPage", () => {
-  it("lists recipes from the API with time, servings, count and tags", async () => {
+  it("lists recipes from the API with time, servings and tags", async () => {
     mockFetch([tacos]);
     renderAt(<RecipesPage />, { path: "/recipes" });
     const link = await screen.findByRole("link", { name: /chicken tacos/i });
     expect(link).toHaveAttribute("href", `/recipes/${tacos.id}`);
     expect(link).toHaveTextContent("35 min");
-    expect(link).toHaveTextContent("6 ingredients");
+    expect(link).toHaveTextContent("35 min · serves 4");
     expect(link).toHaveTextContent("Dinner");
   });
 

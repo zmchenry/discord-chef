@@ -1,12 +1,11 @@
-import { ChevronRight, Clock, Keyboard, Link2, Mic, Plus, Search, Users } from "lucide-react";
+import { Keyboard, Link2, Mic, Plus, Search } from "lucide-react";
 import { useDeferredValue } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-import type { RecipeSummary } from "../../../shared/schema";
 import { ActionMenu } from "../components/OverflowMenu";
-import { Card, Chip, PageHeader, StateMessage } from "../components/ui";
+import { PageHeader, StateMessage } from "../components/ui";
+import { RecipeCard } from "../features/recipePresentation/RecipeCard";
 import { cx } from "../lib/cx";
-import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useRecipes } from "../lib/queries";
 
 import { MEAL_TAGS, tagLabel } from "../../../shared/normalize";
@@ -110,52 +109,9 @@ function RecipeList({ state, filtered }: { state: ReturnType<typeof useRecipes>;
     <ul className="m-0 grid list-none gap-3 p-0 lg:grid-cols-2 xl:grid-cols-3" aria-label="Recipes">
       {state.data.map((r) => (
         <li key={r.id}>
-          <RecipeRow recipe={r} />
+          <RecipeCard recipe={r} />
         </li>
       ))}
     </ul>
-  );
-}
-
-export function RecipeRow({ recipe }: { recipe: RecipeSummary }) {
-  const time = formatMinutes(totalMinutes(recipe));
-  return (
-    <Card className="h-full overflow-hidden">
-      <Link to={`/recipes/${recipe.id}`} className="pressable flex h-full min-h-16 items-center gap-3 p-3 text-text no-underline">
-        <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-sm bg-surface-2 text-2xl">
-          {recipe.icon ?? recipe.title.charAt(0).toUpperCase()}
-        </span>
-        <span className="grid min-w-0 flex-1 gap-1">
-          <span className="line-clamp-2 font-display text-lg font-semibold leading-snug">{recipe.title}</span>
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            {time && (
-              <span className="inline-flex items-center gap-1">
-                <Clock size={14} aria-hidden="true" />
-                {time}
-              </span>
-            )}
-            {recipe.servings && (
-              <span className="inline-flex items-center gap-1">
-                <Users size={14} aria-hidden="true" />
-                {recipe.servings}
-              </span>
-            )}
-            <span>
-              {recipe.ingredientCount} {recipe.ingredientCount === 1 ? "ingredient" : "ingredients"}
-            </span>
-          </span>
-          {recipe.tags.length > 0 && (
-            <span className="flex flex-wrap gap-1.5">
-              {recipe.tags.map((t) => (
-                <Chip key={t} className="py-0.5 text-xs">
-                  {tagLabel(t)}
-                </Chip>
-              ))}
-            </span>
-          )}
-        </span>
-        <ChevronRight size={20} aria-hidden="true" className="shrink-0 text-muted" />
-      </Link>
-    </Card>
   );
 }

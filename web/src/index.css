@@ -28,6 +28,22 @@
   --color-accent-soft: var(--color-accent-soft);
   --color-border: var(--color-border);
   --color-danger: var(--color-danger);
+  --color-tint-red: var(--color-tint-red);
+  --color-tint-red-ink: var(--color-tint-red-ink);
+  --color-tint-orange: var(--color-tint-orange);
+  --color-tint-orange-ink: var(--color-tint-orange-ink);
+  --color-tint-yellow: var(--color-tint-yellow);
+  --color-tint-yellow-ink: var(--color-tint-yellow-ink);
+  --color-tint-green: var(--color-tint-green);
+  --color-tint-green-ink: var(--color-tint-green-ink);
+  --color-tint-teal: var(--color-tint-teal);
+  --color-tint-teal-ink: var(--color-tint-teal-ink);
+  --color-tint-blue: var(--color-tint-blue);
+  --color-tint-blue-ink: var(--color-tint-blue-ink);
+  --color-tint-purple: var(--color-tint-purple);
+  --color-tint-purple-ink: var(--color-tint-purple-ink);
+  --color-tint-pink: var(--color-tint-pink);
+  --color-tint-pink-ink: var(--color-tint-pink-ink);
   --color-transparent: transparent;
   --color-current: currentColor;
 
