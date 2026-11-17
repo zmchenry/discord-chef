@@ -82,7 +82,7 @@ export interface MealNutrition {
   perServing: Nutrients | null
   confidence: Confidence | null
   // Who the meal feeds and how far the recipe scales (household/servings).
-  serves: Pick<MealServings, 'adults' | 'kids' | 'total' | 'leftovers' | 'factor'>
+  serves: Pick<MealServings, 'sourceId' | 'adults' | 'kids' | 'total' | 'leftovers' | 'factor'>
 }
 
 export interface PersonDay {
@@ -157,7 +157,7 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
         custom: s.custom,
         perServing: recipe ? roundNutrients(recipe.nutrition.perServing) : null,
         confidence: recipe ? recipe.nutrition.confidence : null,
-        serves: { adults: s.adults, kids: s.kids, total: s.total, leftovers: s.leftovers, factor: s.factor },
+        serves: { sourceId: s.sourceId, adults: s.adults, kids: s.kids, total: s.total, leftovers: s.leftovers, factor: s.factor },
       }
     })
     for (const p of people) day[p]!.totals = roundNutrients(day[p]!.totals)

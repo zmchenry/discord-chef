@@ -56,7 +56,9 @@ export const mealNutritionSchema = z.object({
   confidence: confidenceSchema.nullable(),
   // Who it feeds: "Serves 3 (2 adults, 2 kids)". leftovers is what later
   // leftover meals eat from it; factor scales the recipe (recipe meals).
+  // sourceId is the recipe eaten, known nutrition or not.
   serves: z.object({
+    sourceId: z.string().nullable(),
     adults: z.number().int(),
     kids: z.number().int(),
     total: z.number(),

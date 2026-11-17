@@ -10,7 +10,7 @@ const factorText = (f: number) =>
 
 // Who a planned meal feeds, how far the recipe scales, and a way into
 // cooking mode at that size. Sits at the top of the slot sheet's portions.
-export function ServesLine({ meal }: { meal: Pick<MealNutritionWire, "kind" | "recipeId" | "serves"> }) {
+export function ServesLine({ meal }: { meal: Pick<MealNutritionWire, "kind" | "serves"> }) {
   const { serves } = meal;
   const cook = serves.total + serves.leftovers;
   const factor = serves.factor;
@@ -24,9 +24,9 @@ export function ServesLine({ meal }: { meal: Pick<MealNutritionWire, "kind" | "r
         <span className="block font-semibold">{servesText(serves)}</span>
         {extra.length > 0 && <span className="block text-sm text-muted">{extra.join(" · ")}</span>}
       </p>
-      {meal.kind === "recipe" && meal.recipeId && cook > 0 && (
+      {meal.kind === "recipe" && serves.sourceId && cook > 0 && (
         <Link
-          to={`/recipes/${meal.recipeId}/cook?servings=${cook}`}
+          to={`/recipes/${serves.sourceId}/cook?servings=${cook}`}
           className="pressable -mr-1 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-primary no-underline"
         >
           <ChefHat size={16} aria-hidden="true" /> Cook for {formatServings(cook)}
