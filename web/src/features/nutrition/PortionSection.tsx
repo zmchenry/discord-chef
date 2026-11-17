@@ -1,88 +1,90 @@
 import { useIsMutating } from "@tanstack/react-query";
-import { Minus, Plus } from "lucide-react";
+import { ChefHat, Minus, Plus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 
+import {
+  clampServings,
+  formatServings,
+  MAX_SERVINGS,
+  MIN_SERVINGS,
+  SERVINGS_STEP,
+} from "../../../../shared/household/servings";
 import type { Meal } from "../../../../shared/schema";
-import { cx } from "../../lib/cx";
-import { ServesLine } from "../household/ServesLine";
-import { useSetPortions, useWeekNutrition } from "./api";
+import { useSetServings, useWeekNutrition } from "./api";
 import { fmt } from "./format";
 
-const STEP = 0.25;
-const MAX = 6;
+// "¾ of the recipe", "1½× the recipe"
+const factorText = (f: number) =>
+  f === 1 ? "the recipe as written" : f < 1 ? `${formatServings(f)} of the recipe` : `${formatServings(f)}× the recipe`;
 
-// A small section in the slot sheet: who this meal feeds ("Serves 3 (2
-// adults, 2 kids)") and how it is split between everyone at home ("Zach 1.5
-// servings · Liz 1"), with a stepper per person, kids included. The default
-// follows the calorie goals and the kids' portions; a change is saved per
-// meal and scales the shopping list too.
+// A small section in the slot sheet: how many servings this meal makes
+// (2 by default, the two adults), in half steps, how far that scales the
+// recipe, and a way into cooking mode at that size. Saved per meal; the
+// shopping list scales by it too.
 export function PortionSection({ weekId, date, meal }: { weekId: string; date: string; meal: Meal }) {
   const q = useWeekNutrition(weekId);
-  const setPortions = useSetPortions(weekId);
-  const saving = useIsMutating({ mutationKey: ["portions", weekId] }) > 0;
-  const day = q.data?.days.find((d) => d.date === date);
-  const m = day?.meals.find((x) => x.meal === meal);
-  const serverKey = m ? JSON.stringify(m.portions) : "";
-  const [draft, setDraft] = useState<Record<string, number> | null>(null);
+  const setServings = useSetServings(weekId);
+  const saving = useIsMutating({ mutationKey: ["servings", weekId] }) > 0;
+  const m = q.data?.days.find((d) => d.date === date)?.meals.find((x) => x.meal === meal);
+  const server = m?.serves.servings ?? null;
+  const [draft, setDraft] = useState<number | null>(null);
   useEffect(() => {
-    if (!saving && serverKey) setDraft(JSON.parse(serverKey) as Record<string, number>);
-  }, [serverKey, saving]);
+    if (!saving && server !== null) setDraft(server);
+  }, [server, saving]);
 
-  if (!q.data || !day || !m || !draft || (m.kind !== "recipe" && m.kind !== "leftovers")) return null;
-  const people = q.data.members.map((x) => x.name).filter((p) => p in draft);
-  const away = q.data.people.filter((p) => !day.people[p]?.home);
-  if (!people.length) return null;
+  if (!m || draft === null || (m.kind !== "recipe" && m.kind !== "leftovers")) return null;
+  const { serves } = m;
 
-  const change = (person: string, delta: number) => {
-    const next = { ...draft, [person]: Math.min(MAX, Math.max(0, Math.round((draft[person]! + delta) / STEP) * STEP)) };
+  const change = (delta: number) => {
+    const next = clampServings(draft + delta);
     setDraft(next);
-    setPortions.mutate({ date, meal, portions: next });
+    setServings.mutate({ date, meal, servings: next });
   };
-  const titleId = `portions-${date}-${meal}`;
+  // While a change is saving, the leftovers and factor are a step behind;
+  // scale the factor by the draft so the line never lags the stepper.
+  const cook = draft + serves.leftovers;
+  const factor = serves.factor === null ? null : (serves.factor * cook) / (serves.servings + serves.leftovers || 1);
+  const extra = [
+    serves.leftovers ? `+${formatServings(serves.leftovers)} for leftovers` : null,
+    factor !== null && factor > 0 && Math.abs(factor - Math.round(factor * 4) / 4) < 0.01 ? factorText(Math.round(factor * 4) / 4) : null,
+  ].filter(Boolean);
+  const titleId = `servings-${date}-${meal}`;
 
   return (
     <section aria-labelledby={titleId} className="grid gap-2 rounded-sm bg-surface p-3">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <h3 id={titleId} className="m-0 font-body text-sm font-bold">
-          Portions
+          Servings
         </h3>
-        {m.custom && (
-          <button
-            type="button"
-            onClick={() => setPortions.mutate({ date, meal, portions: null })}
-            className="pressable -my-3 inline-flex min-h-11 items-center bg-transparent px-1 text-sm font-semibold text-primary"
+        <span className="flex items-center gap-1">
+          <StepButton label="Fewer servings" disabled={draft <= MIN_SERVINGS} onClick={() => change(-SERVINGS_STEP)}>
+            <Minus size={18} />
+          </StepButton>
+          <output aria-live="polite" className="w-12 text-center text-lg font-bold tabular-nums">
+            {formatServings(draft)}
+          </output>
+          <StepButton label="More servings" disabled={draft >= MAX_SERVINGS} onClick={() => change(SERVINGS_STEP)}>
+            <Plus size={18} />
+          </StepButton>
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-2">
+        <p className="m-0 min-w-0">
+          <span className="block font-semibold">Serves {formatServings(draft)}</span>
+          {extra.length > 0 && <span className="block text-sm text-muted">{extra.join(" · ")}</span>}
+        </p>
+        {m.kind === "recipe" && serves.sourceId && (
+          <Link
+            to={`/recipes/${serves.sourceId}/cook?servings=${cook}`}
+            className="pressable -mr-1 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-primary no-underline"
           >
-            Use default
-          </button>
+            <ChefHat size={16} aria-hidden="true" /> Cook for {formatServings(cook)}
+          </Link>
         )}
       </div>
-      <ServesLine meal={m} />
-      {(m.perServing || away.length > 0) && (
-        <p className="m-0 text-sm text-muted">
-          {[m.perServing ? `About ${fmt(m.perServing.kcal)} kcal a serving (est.)` : null, away.length ? `${away.join(" and ")} away` : null]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      )}
-      <ul className="m-0 grid list-none gap-1 p-0">
-        {people.map((p) => (
-          <li key={p} className="flex items-center justify-between gap-2">
-            <span className="min-w-0 truncate font-semibold">{p}</span>
-            <span className="flex items-center gap-1">
-              <StepButton label={`Less for ${p}`} disabled={draft[p]! <= 0} onClick={() => change(p, -STEP)}>
-                <Minus size={18} />
-              </StepButton>
-              <output aria-live="polite" className="w-12 text-center font-semibold tabular-nums">
-                {draft[p]}
-              </output>
-              <StepButton label={`More for ${p}`} disabled={draft[p]! >= MAX} onClick={() => change(p, STEP)}>
-                <Plus size={18} />
-              </StepButton>
-            </span>
-          </li>
-        ))}
-      </ul>
-      {setPortions.isError && <p className="m-0 text-sm font-semibold text-danger">{setPortions.error.message}</p>}
+      {m.perServing && <p className="m-0 text-sm text-muted">About {fmt(m.perServing.kcal)} kcal a serving (est.)</p>}
+      {setServings.isError && <p className="m-0 text-sm font-semibold text-danger">{setServings.error.message}</p>}
     </section>
   );
 }
@@ -94,7 +96,7 @@ function StepButton(p: { label: string; disabled: boolean; onClick: () => void; 
       aria-label={p.label}
       disabled={p.disabled}
       onClick={p.onClick}
-      className={cx("pressable grid size-11 place-items-center rounded-full bg-surface-2 text-text disabled:opacity-40")}
+      className="pressable grid size-11 place-items-center rounded-full bg-surface-2 text-text disabled:opacity-40"
     >
       {p.children}
     </button>

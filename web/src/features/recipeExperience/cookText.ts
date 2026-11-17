@@ -1,6 +1,8 @@
 // Pure text helpers for cooking mode: timers found in step text, and
 // ingredient amounts scaled to a different number of servings.
 
+import { ASSUMED_SERVINGS } from "../../../../shared/household/servings";
+
 // ---------------------------------------------------------------------------
 // Durations
 
@@ -206,7 +208,5 @@ export function scaleIngredientText(raw: string, factor: number): string {
 
 // Servings choices for the stepper. With a known yield it counts servings;
 // without one it offers batch multipliers.
-export const BATCH_FACTORS = [0.5, 1, 1.5, 2, 3, 4];
-
-// The multiplier for amounts: servings over the yield, or the batch multiplier.
-export const scaleFactor = (base: number | null, scale: number | null) => (scale === null ? 1 : base ? scale / base : scale);
+// The multiplier for amounts: servings over the yield (4 when unknown).
+export const scaleFactor = (base: number | null, servings: number) => servings / (base || ASSUMED_SERVINGS);

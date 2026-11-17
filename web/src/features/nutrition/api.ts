@@ -42,8 +42,8 @@ export const nutritionApi = {
   recipe: (id: string, signal?: AbortSignal) =>
     request(recipeNutritionSchema, `/nutrition/recipes/${encodeURIComponent(id)}`, { signal }),
   week: (week: string, signal?: AbortSignal) => request(weekNutritionSchema, `/nutrition/weeks/${week}`, { signal }),
-  setPortions: (week: string, date: string, meal: Meal, portions: Record<string, number> | null) =>
-    request(weekNutritionSchema, `/nutrition/weeks/${week}/portions/${date}/${meal}`, { method: "PUT", body: { portions } }),
+  setServings: (week: string, date: string, meal: Meal, servings: number | null) =>
+    request(weekNutritionSchema, `/nutrition/weeks/${week}/servings/${date}/${meal}`, { method: "PUT", body: { servings } }),
   refresh: (body: { weekId?: string; recipeId?: string }) =>
     request(nutritionRefreshResponseSchema, "/nutrition/refresh", { method: "POST", body }),
   goals: (signal?: AbortSignal) => request(goalsSettingsSchema, "/settings/goals", { signal }).then((r) => r.goals),
@@ -92,13 +92,13 @@ export function useWeekNutrition(weekId: string) {
   });
 }
 
-export function useSetPortions(weekId: string) {
+export function useSetServings(weekId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationKey: ["portions", weekId],
-    scope: { id: `portions-${weekId}` },
-    mutationFn: (v: { date: string; meal: Meal; portions: Record<string, number> | null }) =>
-      nutritionApi.setPortions(weekId, v.date, v.meal, v.portions),
+    mutationKey: ["servings", weekId],
+    scope: { id: `servings-${weekId}` },
+    mutationFn: (v: { date: string; meal: Meal; servings: number | null }) =>
+      nutritionApi.setServings(weekId, v.date, v.meal, v.servings),
     onSuccess: (data: WeekNutritionWire) => {
       // Every cached signature of this week gets the fresh numbers.
       qc.setQueriesData({ queryKey: nutritionKeys.weekAll(weekId) }, data);

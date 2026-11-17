@@ -10,7 +10,8 @@ import { Button, LinkButton, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
 import { useRecipe } from "../../lib/queries";
 import { prefersReducedMotion, useWakeLock } from "./device";
-import { BATCH_FACTORS, scaleFactor } from "./cookText";
+import { cookStartServings } from "../../../../shared/household/servings";
+import { scaleFactor } from "./cookText";
 import { IngredientRows, ServingsStepper } from "./ingredients";
 import { clearCookSession, isRunning, useCookSession } from "./session";
 import { StepText } from "./StepText";
@@ -43,18 +44,20 @@ function CookView({ recipe: r }: { recipe: Recipe }) {
   const location = useLocation();
   const [drawer, setDrawer] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  // Opened from a planned meal (?servings=3): start at what the household
-  // eats, leftovers included. A recipe with no yield gets the nearest batch.
+  // Opened from a planned meal (?servings=2.5): start at what was planned,
+  // leftovers included, and remember it so cooking more shows a note.
+  // Otherwise start at 2 (or the whole recipe when it makes fewer).
   const [params, setParams] = useSearchParams();
-  const planned = Number(params.get("servings"));
-  const { setScale } = cook;
+  const fromPlan = Number(params.get("servings"));
+  const { startPlanned } = cook;
   useEffect(() => {
-    if (!(planned > 0)) return;
-    setScale(r.servings ? planned : (BATCH_FACTORS.find((f) => f >= planned / 4 - 0.01) ?? 4));
+    if (!(fromPlan > 0)) return;
+    startPlanned(fromPlan);
     setParams({}, { replace: true });
-  }, [planned, r.servings, setScale, setParams]);
+  }, [fromPlan, startPlanned, setParams]);
   const step = Math.min(state.step, Math.max(0, steps.length - 1));
-  const factor = scaleFactor(r.servings, state.scale);
+  const servings = state.scale ?? cookStartServings(r.servings, state.planned);
+  const factor = scaleFactor(r.servings, servings);
   const running = state.timers.filter(isRunning).length;
 
   const exit = (finished = false) => {
@@ -214,7 +217,8 @@ function CookView({ recipe: r }: { recipe: Recipe }) {
         <IngredientsDrawer
           recipe={r}
           factor={factor}
-          scale={state.scale}
+          servings={servings}
+          planned={state.planned}
           checked={state.checked}
           onScale={cook.setScale}
           onToggle={cook.toggleChecked}
@@ -338,7 +342,8 @@ function Dots({ count, current, onGo }: { count: number; current: number; onGo: 
 function IngredientsDrawer({
   recipe: r,
   factor,
-  scale,
+  servings,
+  planned,
   checked,
   onScale,
   onToggle,
@@ -346,7 +351,8 @@ function IngredientsDrawer({
 }: {
   recipe: Recipe;
   factor: number;
-  scale: number | null;
+  servings: number;
+  planned: number | null;
   checked: number[];
   onScale: (s: number) => void;
   onToggle: (id: number) => void;
@@ -379,7 +385,7 @@ function IngredientsDrawer({
         </button>
       </div>
       <div className="grid gap-4 overflow-y-auto px-4 pb-4 pt-3">
-        <ServingsStepper base={r.servings} scale={scale} onChange={onScale} />
+        <ServingsStepper servings={servings} planned={planned} onChange={onScale} />
         <IngredientRows items={r.ingredients} factor={factor} checked={checked} onToggle={onToggle} />
       </div>
       <div className="pb-safe border-t border-border px-4 pt-3">

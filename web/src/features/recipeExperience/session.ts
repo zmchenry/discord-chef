@@ -25,12 +25,14 @@ export interface CookTimer {
 export interface CookState {
   step: number;
   checked: number[];
-  /** Servings when the recipe has a yield, else a batch multiplier; null = as written. */
+  /** Servings to cook, in halves; null = where the stepper starts (2, or the plan). */
   scale: number | null;
+  /** Servings planned for this meal (leftovers included), when opened from the plan. */
+  planned: number | null;
   timers: CookTimer[];
 }
 
-const EMPTY: CookState = { step: 0, checked: [], scale: null, timers: [] };
+const EMPTY: CookState = { step: 0, checked: [], scale: null, planned: null, timers: [] };
 const key = (recipeId: string) => `chef.cook.${recipeId}`;
 
 function load(recipeId: string): CookState {
@@ -99,6 +101,8 @@ export function useCookSession(recipeId: string, recipeTitle: string) {
     [update],
   );
   const setScale = useCallback((scale: number | null) => update((s) => ({ ...s, scale })), [update]);
+  // Opened from a planned meal: start at what was planned.
+  const startPlanned = useCallback((planned: number) => update((s) => ({ ...s, scale: planned, planned })), [update]);
 
   // Tap a timer chip: start it, or pause and resume it while it runs.
   const toggleTimer = useCallback(
@@ -126,5 +130,5 @@ export function useCookSession(recipeId: string, recipeTitle: string) {
     [update],
   );
 
-  return { state, now, setStep, toggleChecked, setScale, toggleTimer, removeTimer };
+  return { state, now, setStep, toggleChecked, setScale, startPlanned, toggleTimer, removeTimer };
 }

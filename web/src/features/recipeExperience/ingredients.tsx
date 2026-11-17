@@ -1,10 +1,18 @@
-import { Check, Minus, Plus } from "lucide-react";
+import { AlertTriangle, Check, Minus, Plus } from "lucide-react";
 
 import { displayIngredientName } from "../../../../shared/normalize";
 import { formatAmount, groupIngredients } from "../../../../shared/recipeStructure";
 import type { RecipeIngredient } from "../../../../shared/schema";
 import { cx } from "../../lib/cx";
-import { BATCH_FACTORS, formatAmountText, formatQuantity, scaleIngredientText } from "./cookText";
+import {
+  clampServings,
+  formatServings,
+  MAX_SERVINGS,
+  MIN_SERVINGS,
+  overPlanned,
+  SERVINGS_STEP,
+} from "../../../../shared/household/servings";
+import { formatAmountText, scaleIngredientText } from "./cookText";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -104,59 +112,53 @@ export function IngredientRows({
   );
 }
 
-// The servings stepper. With a yield it counts servings; without one it
-// steps through batch sizes (½×, 1×, 1½×, 2×…).
+// The servings stepper: half servings, from ½ to 12. Cooking more than was
+// planned shows a note that the groceries may not cover it.
 export function ServingsStepper({
-  base,
-  scale,
+  servings,
+  planned,
   onChange,
 }: {
-  base: number | null;
-  scale: number | null;
-  onChange: (scale: number) => void;
+  servings: number;
+  planned: number | null;
+  onChange: (servings: number) => void;
 }) {
-  let label: string;
-  let down: number | null;
-  let up: number | null;
-  if (base) {
-    const n = scale ?? base;
-    label = `${formatQuantity(n)} serving${n === 1 ? "" : "s"}`;
-    down = n > 1 ? n - 1 : null;
-    up = n < 99 ? n + 1 : null;
-  } else {
-    const f = scale ?? 1;
-    const at = BATCH_FACTORS.indexOf(f);
-    label = `${formatQuantity(f)}× batch`;
-    down = at > 0 ? BATCH_FACTORS[at - 1] : null;
-    up = at < BATCH_FACTORS.length - 1 ? BATCH_FACTORS[at + 1] : null;
-  }
   const btn = "pressable grid size-12 place-items-center rounded-full bg-surface-2 text-text disabled:opacity-40";
+  const step = (d: number) => onChange(clampServings(servings + d));
   return (
-    <div className="flex items-center justify-between gap-3 rounded-card border border-border p-2 pl-4">
-      <span className="font-semibold">{base ? "Servings" : "Batch size"}</span>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className={btn}
-          aria-label="Fewer"
-          disabled={down === null}
-          onClick={() => down !== null && onChange(down)}
-        >
-          <Minus size={20} aria-hidden="true" />
-        </button>
-        <output aria-live="polite" className="min-w-24 text-center text-lg font-bold">
-          {label}
-        </output>
-        <button
-          type="button"
-          className={btn}
-          aria-label="More"
-          disabled={up === null}
-          onClick={() => up !== null && onChange(up)}
-        >
-          <Plus size={20} aria-hidden="true" />
-        </button>
+    <div className="grid gap-2">
+      <div className="flex items-center justify-between gap-3 rounded-card border border-border p-2 pl-4">
+        <span className="font-semibold">Servings</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className={btn}
+            aria-label="Fewer servings"
+            disabled={servings <= MIN_SERVINGS}
+            onClick={() => step(-SERVINGS_STEP)}
+          >
+            <Minus size={20} aria-hidden="true" />
+          </button>
+          <output aria-live="polite" className="min-w-24 text-center text-lg font-bold">
+            {formatServings(servings)} serving{servings === 1 ? "" : "s"}
+          </output>
+          <button
+            type="button"
+            className={btn}
+            aria-label="More servings"
+            disabled={servings >= MAX_SERVINGS}
+            onClick={() => step(SERVINGS_STEP)}
+          >
+            <Plus size={20} aria-hidden="true" />
+          </button>
+        </div>
       </div>
+      {overPlanned(planned, servings) && (
+        <p role="status" className="m-0 flex gap-2 rounded-sm bg-surface-2 p-3 text-sm font-semibold text-danger">
+          <AlertTriangle size={18} className="shrink-0" aria-hidden="true" />
+          You planned for {formatServings(planned!)}. Your groceries may not cover {formatServings(servings)}.
+        </p>
+      )}
     </div>
   );
 }
