@@ -45,12 +45,15 @@ const byName = (w: ShoppingWeekResponse) =>
   Object.fromEntries(w.lists.flatMap((l) => l.items.map((i) => [i.name, { ...i, trip: l.trip }])))
 
 it('generates, checks, and keeps checks, manual items and order across regeneration', async () => {
+  // Serves 2: the household of two eats it all, so amounts are as written.
   const tacos = await recipe({
     title: 'Tacos',
+    servings: 2,
     ingredients: [{ rawText: '1 lb ground beef' }, { rawText: '1 cup shredded cheese' }, { rawText: 'cilantro' }],
   })
   const quesadillas = await recipe({
     title: 'Quesadillas',
+    servings: 2,
     ingredients: [{ rawText: '2 tbsp shredded cheese' }, { rawText: '8 tortillas' }],
   })
   await testDb.db.prepare(`UPDATE ingredients SET perishable = 1, section = 'Produce' WHERE name = 'cilantro'`).run()

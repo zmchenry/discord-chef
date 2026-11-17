@@ -120,7 +120,7 @@ export function ServingsStepper({
   let up: number | null;
   if (base) {
     const n = scale ?? base;
-    label = `${n} serving${n === 1 ? "" : "s"}`;
+    label = `${formatQuantity(n)} serving${n === 1 ? "" : "s"}`;
     down = n > 1 ? n - 1 : null;
     up = n < 99 ? n + 1 : null;
   } else {

@@ -9,6 +9,7 @@ import { CookPage } from "./features/recipeExperience/CookPage";
 import { LinkImportRoute } from "./features/recipeExperience/LinkImportRoute";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { GoalsPage } from "./features/nutrition/GoalsPage";
+import { HouseholdPage } from "./features/household/HouseholdPage";
 import { WeekNutritionPage } from "./features/nutrition/WeekNutritionPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { PantryPage } from "./features/pantry/PantryPage";
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="more/calendar" element={<CalendarPage />} />
         <Route path="more/breakfast-lunch" element={<BreakfastLunchPage />} />
         <Route path="more/goals" element={<GoalsPage />} />
+        <Route path="more/household" element={<HouseholdPage />} />
         <Route path="more/appearance" element={<AppearancePage />} />
         <Route path="more/pantry" element={<PantryPage />} />
         {ModalDemo && (

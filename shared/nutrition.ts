@@ -54,6 +54,17 @@ export const mealNutritionSchema = z.object({
   custom: z.boolean(),
   perServing: nutrientsSchema.nullable(),
   confidence: confidenceSchema.nullable(),
+  // Who it feeds: "Serves 3 (2 adults, 2 kids)". leftovers is what later
+  // leftover meals eat from it; factor scales the recipe (recipe meals).
+  // sourceId is the recipe eaten, known nutrition or not.
+  serves: z.object({
+    sourceId: z.string().nullable(),
+    adults: z.number().int(),
+    kids: z.number().int(),
+    total: z.number(),
+    leftovers: z.number(),
+    factor: z.number().nullable(),
+  }),
 })
 export type MealNutritionWire = z.infer<typeof mealNutritionSchema>
 
@@ -71,6 +82,8 @@ export type DayNutritionWire = z.infer<typeof dayNutritionSchema>
 export const weekNutritionSchema = z.object({
   weekId: isoDateSchema,
   people: z.array(z.string()),
+  // Everyone who eats at home, adults (the people) then kids.
+  members: z.array(z.object({ name: z.string(), kind: z.enum(['adult', 'kid']) })),
   goals: z.array(goalSchema),
   days: z.array(dayNutritionSchema),
   week: z.record(
@@ -89,7 +102,7 @@ export const weekNutritionSchema = z.object({
 export type WeekNutritionWire = z.infer<typeof weekNutritionSchema>
 
 // PUT /api/nutrition/weeks/:start/portions/:date/:meal. null goes back to
-// the default split. Servings per person, in quarters, 0 to 6.
+// the default split. Servings per person (kids too), in quarters, 0 to 6.
 export const portionsInputSchema = z.object({
   portions: z.record(z.string().trim().min(1).max(40), z.number().min(0).max(6)).nullable(),
 })

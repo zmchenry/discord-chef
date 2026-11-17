@@ -1,8 +1,10 @@
+import { roundUpAmount } from '../../../shared/household/servings'
 import { normalizeIngredientName } from '../../../shared/normalize'
 import type { Trip } from '../../../shared/schema'
 import { aggregate, formatAmount, itemKey, type AggregatedItem, type AggregateSlot } from '../../../shared/shopping/aggregate'
 import { sortItems } from '../../../shared/shopping/sort'
 import { splitTrips } from '../../../shared/shopping/trips'
+import { weekServings } from '../household/db'
 import type { ItemRow, ListRow } from './db'
 import { estimateWeekPrices } from './prices'
 
@@ -23,8 +25,6 @@ interface SlotRow {
   slot_id: number
   day: number
   recipe_id: string
-  slot_servings: number | null
-  recipe_servings: number | null
   ingredient_id: number | null
   ingredient_name: string | null
   raw_text: string
@@ -51,11 +51,7 @@ export async function buildListForWeek(
   const [slotRes, listRes, itemRes, storeRes] = await db.batch([
     db
       .prepare(
-        `SELECT ps.id AS slot_id, ps.day, ps.recipe_id, r.servings AS recipe_servings,
-                -- A portion split bigger than the recipe scales it up (never down: leftovers).
-                coalesce((SELECT CASE WHEN p.total > r.servings THEN p.total END FROM plan_slot_portions p
-                          WHERE p.slot_id = ps.id AND p.slot_key = ps.recipe_id), ps.servings) AS slot_servings,
-                ri.ingredient_id, i.name AS ingredient_name, ri.raw_text, ri.quantity, ri.unit,
+        `SELECT ps.id AS slot_id, ps.day, ps.recipe_id, ri.ingredient_id, i.name AS ingredient_name, ri.raw_text, ri.quantity, ri.unit,
                 i.section, coalesce(i.perishable, 0) AS perishable
          FROM plan_slots ps
          JOIN recipes r ON r.id = ps.recipe_id
@@ -75,13 +71,18 @@ export async function buildListForWeek(
   const existingLists = listRes.results as ListRow[]
   const existingItems = itemRes.results as ItemRow[]
   const stores = storeRes.results as Array<{ id: number; section_order: string }>
+  // Each recipe scales to who eats it, leftovers included, up or down
+  // (shared/household/servings.ts).
+  const servings = await weekServings(db, weekId)
 
-  // 1. Aggregate the plan.
+  // 1. Aggregate the plan, then round each amount up to something you can
+  //    buy (3 bagels, not 2.75).
   const slots = new Map<number, AggregateSlot>()
   for (const r of rows) {
+    const scale = servings.get(r.slot_id)?.factor ?? 1
+    if (scale <= 0) continue // nobody home to eat it
     let slot = slots.get(r.slot_id)
     if (!slot) {
-      const scale = r.slot_servings && r.recipe_servings ? r.slot_servings / r.recipe_servings : 1
       slots.set(r.slot_id, (slot = { day: r.day, recipeId: r.recipe_id, scale, ingredients: [] }))
     }
     slot.ingredients.push({
@@ -93,7 +94,10 @@ export async function buildListForWeek(
       perishable: r.perishable === 1,
     })
   }
-  const items = aggregate([...slots.values()])
+  const items = aggregate([...slots.values()]).map((it) => ({
+    ...it,
+    parts: it.parts.map((p) => ({ ...p, quantity: roundUpAmount(p.quantity, p.unit) })),
+  }))
 
   const twoTrips = opts.twoTrips ?? existingLists.some((l) => l.trip !== null)
   const byTrip = new Map<string, AggregatedItem[]>()

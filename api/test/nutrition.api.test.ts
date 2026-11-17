@@ -96,12 +96,13 @@ it('estimates, computes recipe and week nutrition, splits portions and keeps goa
   expect(week.days[0]!.meals[2]).toMatchObject({ portions: { Zach: 1.5, Liz: 1 }, custom: true })
   expect(week.days[0]!.people.Zach!.totals.kcal).toBe(Math.round(653.6 * 1.5))
 
-  // A split bigger than the recipe (2.5 > 2 servings) scales the shopping list up.
+  // The shopping list scales to the split plus Monday's leftovers lunch:
+  // (2.5 + 2) servings over 2.
   await json(devRequest('POST', `/api/weeks/${WEEK}/finish`, {}))
   const rice = await testDb.db
     .prepare(`SELECT quantity, unit FROM shopping_items WHERE name = 'rice'`)
     .first<{ quantity: number; unit: string }>()
-  expect(rice).toEqual({ quantity: 2.5, unit: 'cup' })
+  expect(rice).toEqual({ quantity: 4.5, unit: 'cup' })
 
   // Changing the slot's recipe drops the split.
   await json(devRequest('PUT', `/api/weeks/${WEEK}/slots/${WEEK}/dinner`, { kind: 'eat_out' }))
