@@ -1,7 +1,8 @@
 import type { Page, Route } from "@playwright/test";
 
 import type { WeekView } from "../../shared/planningApi";
-import type { Recipe, RecipeSummary } from "../../shared/schema";
+import type { StructuredRecipe as Recipe } from "../../shared/recipePresentation";
+import type { RecipeSummary } from "../../shared/schema";
 
 // Answers /api/* in the browser so the smoke test needs no Worker or D1.
 // Responses are typed against shared/schema.ts, so contract drift fails tsc.
@@ -19,8 +20,8 @@ export const recipe: Recipe = {
   notes: null,
   tags: ["dinner", "fast"],
   ingredients: [
-    { id: 1, position: 0, rawText: "1.5 lb chicken thighs", ingredientId: 1, ingredientName: "chicken thighs", quantity: 1.5, unit: "lb", note: null, optional: false },
-    { id: 2, position: 1, rawText: "3 bell peppers", ingredientId: 2, ingredientName: "bell pepper", quantity: 3, unit: null, note: null, optional: false },
+    { id: 1, position: 0, rawText: "1.5 lb chicken thighs", ingredientId: 1, ingredientName: "chicken thighs", quantity: 1.5, unit: "lb", note: null, optional: false, group: null, flavors: [] },
+    { id: 2, position: 1, rawText: "3 bell peppers", ingredientId: 2, ingredientName: "bell pepper", quantity: 3, unit: null, note: null, optional: false, group: null, flavors: [] },
   ],
   createdBy: "dev@example.com",
   createdAt: 1_763_200_000_000,

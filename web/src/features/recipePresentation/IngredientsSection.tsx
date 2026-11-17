@@ -79,10 +79,10 @@ function IngredientRow({ ingredient: i }: { ingredient: StructuredIngredient }) 
   const d = ingredientDisplay(i);
   return (
     <li className="flex min-h-14 items-center gap-3 border-b border-border px-4 py-3 last:border-b-0">
-      <div className="min-w-0 flex-1 text-[1.0625rem] leading-snug text-muted">
-        <span className="mr-2 break-words">{d.name}</span>
+      <div className="grid min-w-0 flex-1 gap-1">
+        <span className="break-words text-[1.0625rem] leading-snug text-muted">{d.name}</span>
         {i.flavors.length > 0 && (
-          <span className="inline-flex translate-y-[-1px] flex-wrap gap-1 align-middle">
+          <span className="flex flex-wrap gap-1">
             {i.flavors.map((f) => (
               <FlavorPill key={f} flavor={f} />
             ))}
@@ -90,8 +90,9 @@ function IngredientRow({ ingredient: i }: { ingredient: StructuredIngredient }) 
         )}
       </div>
       {(d.primary || d.secondary) && (
-        <div className="max-w-[42%] shrink-0 text-right leading-snug">
-          {d.primary && <div className="font-bold">{d.primary}</div>}
+        <div className="max-w-[45%] shrink-0 text-right leading-snug">
+          {/* The amount always stays on one line; a note under it may wrap. */}
+          {d.primary && <div className="whitespace-nowrap font-bold">{d.primary}</div>}
           {d.secondary && <div className="text-sm text-muted">{d.secondary}</div>}
         </div>
       )}

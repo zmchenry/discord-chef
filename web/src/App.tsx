@@ -1,6 +1,8 @@
 import { AppearancePage } from "./features/appearance/AppearancePage";
-import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+
+import { isStale, reloadForUpdate } from "./lib/freshness";
 
 import { AppShell } from "./components/AppShell";
 import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage";
@@ -27,7 +29,16 @@ const ModalDemo = import.meta.env.DEV
   ? lazy(() => import("./features/modal/ModalDemo").then((m) => ({ default: m.ModalDemo })))
   : null;
 
+// When a newer app is out (lib/freshness), moving to another page loads it.
+function useReloadWhenStale() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (isStale()) reloadForUpdate();
+  }, [pathname]);
+}
+
 export default function App() {
+  useReloadWhenStale();
   return (
     <Routes>
       <Route path="recipes/:id/cook" element={<CookPage />} />

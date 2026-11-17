@@ -17,7 +17,8 @@ async function smallTargets(page: Page) {
       .filter((el) => {
         const r = el.getBoundingClientRect();
         const style = getComputedStyle(el);
-        return r.width > 0 && r.height > 0 && style.visibility !== "hidden" && !el.closest(".sr-only");
+        // Inline targets inside running text (technique words) are exempt, as WCAG allows.
+        return r.width > 0 && r.height > 0 && style.visibility !== "hidden" && !el.closest(".sr-only") && !el.hasAttribute("data-inline-target");
       })
       .map((el) => {
         const r = el.getBoundingClientRect();
@@ -54,7 +55,7 @@ test("tabs navigate, and recipes load from the API", async ({ page }) => {
   await row.click();
   await expect(page).toHaveURL(`/recipes/${recipe.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Sheet-pan chicken fajitas");
-  await expect(page.getByText("3 bell peppers")).toBeVisible();
+  await expect(page.getByText(/bell pepper/i)).toBeVisible();
 
   await nav.getByRole("link", { name: "Shop" }).click();
   await expect(page.getByRole("heading", { name: "Shopping" })).toBeVisible();

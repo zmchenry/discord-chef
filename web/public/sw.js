@@ -48,6 +48,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // The app's own update check (lib/freshness.ts) must see the server's copy.
+  if (url.searchParams.has("fresh")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(networkFirstNavigation(request));

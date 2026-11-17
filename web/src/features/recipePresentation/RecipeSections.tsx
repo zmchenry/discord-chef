@@ -72,31 +72,32 @@ export function NutritionSlot({ recipeId }: { recipeId: string }) {
   );
 }
 
+// Tags and our notes, each under its own heading.
 export function MoreSection({ tags, notes }: { tags: string[]; notes: string | null }) {
-  if (!tags.length && !notes) return null;
   return (
-    <section aria-labelledby="more-title" className="grid gap-3">
-      <h2 id="more-title" className="m-0 font-body text-2xl font-bold">
-        More
-      </h2>
+    <>
       {tags.length > 0 && (
-        <div className="grid gap-1">
-          <h3 className="m-0 font-body text-base font-bold text-muted">Tags</h3>
-          <ul className="m-0 flex list-none flex-wrap gap-x-2 p-0" aria-label="Tags">
+        <section aria-labelledby="tags-title" className="grid gap-3">
+          <h2 id="tags-title" className="m-0 font-body text-2xl font-bold">
+            Tags
+          </h2>
+          <ul className="m-0 flex list-none flex-wrap gap-x-2 p-0">
             {tags.map((t) => (
               <li key={t}>
                 <TagLink tag={t} />
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
       {notes && (
-        <div className="rounded-card border border-border bg-surface p-4">
-          <h3 className="m-0 mb-1.5 font-body text-base font-bold">Our notes</h3>
-          <p className="m-0 whitespace-pre-line leading-relaxed text-muted">{notes}</p>
-        </div>
+        <section aria-labelledby="notes-title" className="grid gap-3">
+          <h2 id="notes-title" className="m-0 font-body text-2xl font-bold">
+            Our notes
+          </h2>
+          <p className="m-0 whitespace-pre-line rounded-card border border-border bg-surface p-4 leading-relaxed text-muted">{notes}</p>
+        </section>
       )}
-    </section>
+    </>
   );
 }

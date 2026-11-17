@@ -93,6 +93,7 @@ export function TechniqueText({ text }: { text: string }) {
         type="button"
         onClick={() => setOpen(s.key)}
         aria-haspopup="dialog"
+        data-inline-target
         className="pressable relative mx-px inline rounded-full border border-border bg-transparent px-1.5 py-px align-baseline text-[0.95em] font-semibold leading-snug text-text after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-['']"
       >
         {s.term}
