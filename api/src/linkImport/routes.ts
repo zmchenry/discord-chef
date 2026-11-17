@@ -21,7 +21,7 @@ export const NO_RECIPE = "couldn't find a recipe on that page"
 
 const error = (message: string): ErrorResponse => ({ error: message })
 
-function ogImage(html: string): string | null {
+export function ogImage(html: string): string | null {
   const tag = html.match(/<meta\b[^>]*\bproperty\s*=\s*["']og:image["'][^>]*>/i)?.[0]
   return tag?.match(/\bcontent\s*=\s*["']([^"']+)["']/i)?.[1] ?? null
 }
