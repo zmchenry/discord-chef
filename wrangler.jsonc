@@ -57,6 +57,10 @@
     }
   ],
 
+  // Dish photos (api/src/dishPhotos): a private bucket, served only through
+  // the Worker at /api/photos/*, behind the session check.
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "chef-photos" }],
+
   // Cron Triggers for notifications (api/src/notifications/cron.ts). Every
   // 15 minutes: each run finds the reminders whose America/New_York time
   // falls in the current 15-minute window.

@@ -26,6 +26,8 @@ import {
 } from './db'
 import { calendarRefreshRoutes } from './calendarRefresh/routes'
 import { discoveryRoutes } from './discovery/routes'
+import { dishPhotoRoutes } from './dishPhotos/routes'
+import { runPhotoReminders } from './dishPhotos/reminders'
 import { runCalendarCron } from './calendarRefresh/cron'
 import { guidedDinnersRoutes } from './guidedDinners/routes'
 import { linkImportRoutes } from './linkImport/routes'
@@ -195,6 +197,7 @@ app.delete('/recipes/:id', requireSession, async (c) => {
   return found ? c.body(null, 204) : notFound(c)
 })
 
+app.route('/', dishPhotoRoutes)
 app.route('/', linkImportRoutes)
 app.route('/', textImportRoutes)
 app.route('/', notificationRoutes)
@@ -246,6 +249,7 @@ export default {
   // the calendar refresh and clash check.
   async scheduled(controller, env, _ctx) {
     await runNotificationCron(env, controller.scheduledTime)
+    await runPhotoReminders(env, controller.scheduledTime)
     await runCalendarCron(env, controller.scheduledTime)
     await runOrganizeBackfill(env, controller.scheduledTime)
   },

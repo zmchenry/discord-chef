@@ -141,6 +141,15 @@ export type RecipeIngredientInput = z.input<typeof recipeIngredientInputSchema>
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().default(null)
 const optionalUrl = z.string().trim().url().max(2000).nullable().default(null)
+// A web address, or a photo the Worker stores itself (POST /api/recipes/:id/photo,
+// served from /api/photos/..., see shared/dishPhotos.ts).
+const optionalImageUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((s) => /^\/api\/photos\/[\w/-]+\.(jpg|png|webp)$/.test(s) || z.string().url().safeParse(s).success, 'Invalid url')
+  .nullable()
+  .default(null)
 const optionalMinutes = z.number().int().min(0).max(24 * 60).nullable().default(null)
 
 // POST /api/recipes and PUT /api/recipes/:id. PUT is a full replace: the
@@ -149,7 +158,7 @@ export const recipeInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: optionalText(2000),
   sourceUrl: optionalUrl,
-  imageUrl: optionalUrl,
+  imageUrl: optionalImageUrl,
   icon: z.string().trim().max(16).nullable().default(null),
   servings: z.number().int().min(1).max(100).nullable().default(null),
   prepMinutes: optionalMinutes,

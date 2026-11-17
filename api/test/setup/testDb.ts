@@ -35,10 +35,12 @@ async function readMigrationStatements(): Promise<string[]> {
 
 export interface TestDb {
   db: D1Database
+  // The PHOTOS R2 bucket, when asked for with { photos: true }.
+  photos?: R2Bucket
   dispose(): Promise<void>
 }
 
-export async function createTestDb(): Promise<TestDb> {
+export async function createTestDb(opts: { photos?: boolean } = {}): Promise<TestDb> {
   // The `miniflare` devDependency is pinned to the build fire-calculator
   // uses, separately from the newer one wrangler bundles: later 5.x betas
   // replaced this single-worker options shape with a different config model.
@@ -47,6 +49,7 @@ export async function createTestDb(): Promise<TestDb> {
     modules: true,
     script: "export default { fetch() { return new Response('unused') } }",
     d1Databases: { DB: 'test-db' },
+    ...(opts.photos ? { r2Buckets: { PHOTOS: 'test-photos' } } : {}),
   })
 
   const db = await mf.getD1Database('DB')
@@ -54,5 +57,6 @@ export async function createTestDb(): Promise<TestDb> {
     await db.prepare(stmt).run()
   }
 
-  return { db, dispose: () => mf.dispose() }
+  const photos = opts.photos ? ((await mf.getR2Bucket('PHOTOS')) as unknown as R2Bucket) : undefined
+  return { db, photos, dispose: () => mf.dispose() }
 }
