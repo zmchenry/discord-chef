@@ -63,9 +63,13 @@ export function MethodSection({ steps, organizing }: { steps: RecipeStep[]; orga
 }
 
 // Nutrition is the nutrition feature's own card (heading included); this
-// page only mounts it.
+// page only mounts it, with its heading in the recipe screen's bold sans.
 export function NutritionSlot({ recipeId }: { recipeId: string }) {
-  return <RecipeNutrition recipeId={recipeId} />;
+  return (
+    <div className="[&_h2]:font-body [&_h2]:font-bold">
+      <RecipeNutrition recipeId={recipeId} />
+    </div>
+  );
 }
 
 export function MoreSection({ tags, notes }: { tags: string[]; notes: string | null }) {
