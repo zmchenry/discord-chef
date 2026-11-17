@@ -4,15 +4,18 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import type { Meal } from "../../../../shared/schema";
 import { cx } from "../../lib/cx";
+import { ServesLine } from "../household/ServesLine";
 import { useSetPortions, useWeekNutrition } from "./api";
 import { fmt, servings } from "./format";
 
 const STEP = 0.25;
 const MAX = 6;
 
-// A small section in the slot sheet: how this meal is split between the
-// people at home ("Zach 1.5 servings · Liz 1"), with a stepper per person.
-// The default follows the calorie goals; a change is saved per meal.
+// A small section in the slot sheet: who this meal feeds ("Serves 3 (2
+// adults, 2 kids)") and how it is split between everyone at home ("Zach 1.5
+// servings · Liz 1"), with a stepper per person, kids included. The default
+// follows the calorie goals and the kids' portions; a change is saved per
+// meal and scales the shopping list too.
 export function PortionSection({ weekId, date, meal }: { weekId: string; date: string; meal: Meal }) {
   const q = useWeekNutrition(weekId);
   const setPortions = useSetPortions(weekId);
@@ -26,7 +29,7 @@ export function PortionSection({ weekId, date, meal }: { weekId: string; date: s
   }, [serverKey, saving]);
 
   if (!q.data || !day || !m || !draft || (m.kind !== "recipe" && m.kind !== "leftovers")) return null;
-  const people = q.data.people.filter((p) => p in draft);
+  const people = q.data.members.map((x) => x.name).filter((p) => p in draft);
   const away = q.data.people.filter((p) => !day.people[p]?.home);
   if (!people.length) return null;
 
@@ -53,6 +56,7 @@ export function PortionSection({ weekId, date, meal }: { weekId: string; date: s
           </button>
         )}
       </div>
+      <ServesLine meal={m} />
       <p className="m-0 text-sm text-muted">
         {people.map((p) => `${p} ${p === people[0] ? servings(draft[p]!) : draft[p]}`).join(" · ")}
         {m.perServing ? ` · about ${fmt(m.perServing.kcal)} kcal a serving (est.)` : ""}

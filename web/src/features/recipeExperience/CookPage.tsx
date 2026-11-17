@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, ChevronDown, ListChecks, Mic, Sun, X } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type TouchEvent } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { parseSteps, stepLabel, type RecipeStep } from "../../../../shared/recipeStructure";
 import type { StructuredRecipe as Recipe } from "../../../../shared/recipePresentation";
@@ -10,7 +10,7 @@ import { Button, LinkButton, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
 import { useRecipe } from "../../lib/queries";
 import { prefersReducedMotion, useWakeLock } from "./device";
-import { scaleFactor } from "./cookText";
+import { BATCH_FACTORS, scaleFactor } from "./cookText";
 import { IngredientRows, ServingsStepper } from "./ingredients";
 import { clearCookSession, isRunning, useCookSession } from "./session";
 import { StepText } from "./StepText";
@@ -43,6 +43,16 @@ function CookView({ recipe: r }: { recipe: Recipe }) {
   const location = useLocation();
   const [drawer, setDrawer] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  // Opened from a planned meal (?servings=3): start at what the household
+  // eats, leftovers included. A recipe with no yield gets the nearest batch.
+  const [params, setParams] = useSearchParams();
+  const planned = Number(params.get("servings"));
+  const { setScale } = cook;
+  useEffect(() => {
+    if (!(planned > 0)) return;
+    setScale(r.servings ? planned : (BATCH_FACTORS.find((f) => f >= planned / 4 - 0.01) ?? 4));
+    setParams({}, { replace: true });
+  }, [planned, r.servings, setScale, setParams]);
   const step = Math.min(state.step, Math.max(0, steps.length - 1));
   const factor = scaleFactor(r.servings, state.scale);
   const running = state.timers.filter(isRunning).length;
