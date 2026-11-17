@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { mockApi } from "./mockApi";
+import { mockApi, recipe } from "./mockApi";
 
 // Guardrail: the main screens never scroll sideways, on a small phone or on
 // a desktop (where the top nav and multi-column layouts kick in).
@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 for (const width of [360, 1280]) {
   test(`no horizontal overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
-    for (const path of ["/week", "/recipes", "/shop", "/more"]) {
+    for (const path of ["/week", "/recipes", `/recipes/${recipe.id}`, "/recipes/new", "/shop", "/more"]) {
       await page.goto(path);
       await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
       await page.waitForLoadState("networkidle");

@@ -27,10 +27,6 @@ async function smallTargets(page: Page) {
   });
 }
 
-async function horizontalOverflow(page: Page) {
-  return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-}
-
 test("opens on the week, with the four-tab bar", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/week$/);
@@ -88,16 +84,6 @@ test("form inputs use at least 16px text and have labels", async ({ page }) => {
       (el) => (el as HTMLInputElement).labels!.length > 0 || el.hasAttribute("aria-label"),
     );
     expect(labelled).toBe(true);
-  }
-});
-
-test("nothing scrolls sideways at 360px", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 780 });
-  for (const path of ["/week", "/recipes", `/recipes/${recipe.id}`, "/recipes/new", "/shop", "/more"]) {
-    await page.goto(path);
-    await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
-    await page.waitForLoadState("networkidle");
-    expect(await horizontalOverflow(page), path).toBe(0);
   }
 });
 

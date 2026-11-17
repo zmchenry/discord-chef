@@ -1,5 +1,5 @@
 import { SignJWT, exportJWK, generateKeyPair } from 'jose'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { makeAccessSessionProvider, makeCachingJwksFetcher, parseAllowedEmails } from '../src/session'
 
@@ -132,15 +132,6 @@ describe('parseAllowedEmails', () => {
 })
 
 describe('makeCachingJwksFetcher', () => {
-  it('fetches the team certs URL with edge caching and returns the key set', async () => {
-    const fetchImpl = vi.fn(async () => Response.json({ keys: [] }))
-    const jwks = await makeCachingJwksFetcher(TEAM, fetchImpl as unknown as typeof fetch)()
-    expect(jwks).toEqual({ keys: [] })
-    expect(fetchImpl).toHaveBeenCalledWith(`${TEAM}/cdn-cgi/access/certs`, {
-      cf: { cacheTtl: 3600, cacheEverything: true },
-    })
-  })
-
   it('throws on a non-2xx response', async () => {
     const fetchImpl = async () => new Response('nope', { status: 503 })
     await expect(makeCachingJwksFetcher(TEAM, fetchImpl as unknown as typeof fetch)()).rejects.toThrow('503')

@@ -121,13 +121,14 @@ describe('unknown /api routes', () => {
 })
 
 describe('scheduled()', () => {
-  it('runs the notification cron, which sends nothing with no subscribers', async () => {
-    await expect(
-      worker.scheduled(
-        { cron: '*/15 * * * *', scheduledTime: Date.UTC(2026, 10, 15), noRetry() {} } as ScheduledController,
-        prodEnv(testDb.db),
-        {} as ExecutionContext,
-      ),
-    ).resolves.toBeUndefined()
+  it('runs the cron at a due time and, with no subscribers, records nothing as sent', async () => {
+    // 12:30 UTC on Mon 2026-11-16 is 07:30 in New York: the default "what's cooking" time.
+    await worker.scheduled(
+      { cron: '*/15 * * * *', scheduledTime: Date.UTC(2026, 10, 16, 12, 30), noRetry() {} } as ScheduledController,
+      prodEnv(testDb.db),
+      { waitUntil() {}, passThroughOnException() {} } as unknown as ExecutionContext,
+    )
+    const sent = await testDb.db.prepare('SELECT count(*) AS n FROM notification_sent_log').first<{ n: number }>()
+    expect(sent?.n).toBe(0)
   })
 })
