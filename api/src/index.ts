@@ -25,6 +25,7 @@ import {
   updateRecipe,
 } from './db'
 import { calendarRefreshRoutes } from './calendarRefresh/routes'
+import { discoveryRoutes } from './discovery/routes'
 import { runCalendarCron } from './calendarRefresh/cron'
 import { guidedDinnersRoutes } from './guidedDinners/routes'
 import { linkImportRoutes } from './linkImport/routes'
@@ -191,6 +192,7 @@ app.route('/', notificationRoutes)
 app.route('/', planningRoutes)
 app.route('/', guidedDinnersRoutes)
 app.route('/', calendarRefreshRoutes)
+app.route('/', discoveryRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 
