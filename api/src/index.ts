@@ -30,6 +30,7 @@ import { runCalendarCron } from './calendarRefresh/cron'
 import { guidedDinnersRoutes } from './guidedDinners/routes'
 import { linkImportRoutes } from './linkImport/routes'
 import { runNotificationCron } from './notifications/cron'
+import { runOrganizeBackfill } from './recipePresentation/backfill'
 import { notificationRoutes } from './notifications/routes'
 import { pantryRoutes } from './pantry/routes'
 import { nutritionAfterWrites, nutritionRoutes } from './nutrition/routes'
@@ -246,5 +247,6 @@ export default {
   async scheduled(controller, env, _ctx) {
     await runNotificationCron(env, controller.scheduledTime)
     await runCalendarCron(env, controller.scheduledTime)
+    await runOrganizeBackfill(env, controller.scheduledTime)
   },
 } satisfies ExportedHandler<Env>
