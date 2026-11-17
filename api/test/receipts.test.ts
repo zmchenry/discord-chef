@@ -75,6 +75,7 @@ describe('pickPrice', () => {
   const receipt: P = { source: 'receipt', updatedAt: now - 10 * day }
   const newerReceipt: P = { source: 'receipt', updatedAt: now - 2 * day }
   const staleReceipt: P = { source: 'receipt', updatedAt: now - 91 * day }
+  const rescan: P = { ...receipt }
 
   it.each([
     ['manual beats a fresh receipt', [receipt, manual], manual],
@@ -83,6 +84,7 @@ describe('pickPrice', () => {
     ['a stale receipt beats nothing', [staleReceipt], staleReceipt],
     ['the newer of two receipts', [receipt, newerReceipt], newerReceipt],
     ['the older receipt does not replace the newer', [newerReceipt, receipt], newerReceipt],
+    ['a rescan of the same receipt replaces it', [receipt, rescan], rescan],
   ])('%s', (_name, candidates, want) => {
     expect(pickPrice(candidates, now)).toBe(want)
   })

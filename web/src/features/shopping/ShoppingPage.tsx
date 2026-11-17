@@ -1,4 +1,4 @@
-import { ArrowDownUp, ChevronLeft, ChevronRight, RefreshCw, Split, Tag } from "lucide-react";
+import { ArrowDownUp, ChevronLeft, ChevronRight, ReceiptText, RefreshCw, Split, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -10,6 +10,8 @@ import { addDays, defaultShoppingWeek, formatWeekRange } from "../../../../share
 import { OverflowMenu, type MenuItem } from "../../components/OverflowMenu";
 import { Button, Card, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { ReceiptTotalsLine } from "../receipts/ReceiptShare";
+import { ScanReceiptModal } from "../receipts/ScanReceiptModal";
 import { AddItem } from "./AddItem";
 import { AlsoAt, ItemList, type Row } from "./ItemList";
 import { SectionOrder, StorePicker } from "./StorePicker";
@@ -83,6 +85,8 @@ export function ShoppingPage() {
   const prices = useRefreshPrices(weekId);
   const [tripIndex, setTripIndex] = useState(0);
   const [editingAisles, setEditingAisles] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [receiptNote, setReceiptNote] = useState<string | null>(null);
 
   const hasList = !!week.data && week.data.lists.length > 0;
   const list = hasList ? week.data.lists[Math.min(tripIndex, week.data.lists.length - 1)] : null;
@@ -120,13 +124,14 @@ export function ShoppingPage() {
     if (store)
       menu.push({ label: `Change ${store.name}'s aisle order`, icon: ArrowDownUp, onSelect: () => setEditingAisles(true) });
   }
+  if (week.data) menu.push({ label: "Scan a receipt", hint: "Real prices from a photo", icon: ReceiptText, onSelect: () => setScanning(true) });
   const priceNote = prices.isPending
     ? "Estimating prices…"
     : prices.isError
       ? "Couldn't estimate prices."
       : prices.isSuccess && prices.data.estimated === 0
         ? "No prices came back. Try again later."
-        : null;
+        : receiptNote;
 
   return (
     <>
@@ -170,6 +175,20 @@ export function ShoppingPage() {
           />
         )}
       </div>
+      {scanning && week.data && (
+        <ScanReceiptModal
+          open
+          onClose={() => setScanning(false)}
+          stores={week.data.stores}
+          defaultStoreId={list?.storeId ?? null}
+          onSaved={(r, at) =>
+            setReceiptNote(
+              `Saved ${r.saved} ${r.saved === 1 ? "price" : "prices"}${at ? ` for ${at.name}` : ""} from the receipt` +
+                (r.keptManual ? `, kept ${r.keptManual} you set yourself.` : "."),
+            )
+          }
+        />
+      )}
     </>
   );
 }
@@ -237,6 +256,7 @@ function WeekLists({
           />
         )}
         <StorePicker stores={week.stores} list={list} onPick={(storeId) => update.mutate({ listId: list.id, storeId })} />
+        <ReceiptTotalsLine list={list} storeName={store?.name} />
         {note && (
           <p className="m-0 px-1 text-sm text-muted" role="status">
             {note}

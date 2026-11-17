@@ -15,7 +15,8 @@ export function priceKind(p: { source: PriceSource; updatedAt: number }, now: nu
 }
 
 // manual > receipt newer than 90 days > estimate > older receipt. Between two
-// of the same rank the newer one wins. null for no candidates.
+// of the same rank the newer one wins, and on a tie the later candidate (so a
+// rescan of the same receipt replaces its prices). null for no candidates.
 const RANK = (p: { source: PriceSource; updatedAt: number }, now: number) =>
   p.source === 'manual' ? 3 : p.source === 'estimate' ? 1 : priceKind(p, now) === 'receipt' ? 2 : 0.5
 
@@ -25,7 +26,7 @@ export function pickPrice<T extends { source: PriceSource; updatedAt: number }>(
     if (!best) best = p
     else {
       const d = RANK(p, now) - RANK(best, now)
-      if (d > 0 || (d === 0 && p.updatedAt > best.updatedAt)) best = p
+      if (d > 0 || (d === 0 && p.updatedAt >= best.updatedAt)) best = p
     }
   }
   return best
