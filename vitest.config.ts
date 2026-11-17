@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     include: ['api/test/**/*.test.ts'],
     environment: 'node',
+    // API tests boot a local D1 each; the Workers Builds runner is several times slower than a laptop.
+    testTimeout: 30_000,
   },
 })
