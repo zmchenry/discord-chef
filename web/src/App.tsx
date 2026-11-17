@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
 import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage";
+import { IdeasPage } from "./features/discovery/IdeasPage";
 import { ImportPage } from "./features/linkImport/ImportPage";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="recipes/new" element={<RecipeEditPage />} />
         <Route path="recipes/import" element={<ImportPage />} />
         <Route path="recipes/speak" element={<SpeakPage />} />
+        <Route path="recipes/ideas" element={<IdeasPage />} />
         <Route path="recipes/:id" element={<RecipeDetailPage />} />
         <Route path="recipes/:id/edit" element={<RecipeEditPage />} />
         <Route path="shop" element={<ShoppingPage />} />
