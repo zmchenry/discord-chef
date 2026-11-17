@@ -71,8 +71,8 @@ export async function buildListForWeek(
   const existingLists = listRes.results as ListRow[]
   const existingItems = itemRes.results as ItemRow[]
   const stores = storeRes.results as Array<{ id: number; section_order: string }>
-  // Each recipe scales to who eats it, leftovers included, up or down
-  // (shared/household/servings.ts).
+  // Each recipe scales to the servings planned, leftovers included, up or
+  // down (shared/household/servings.ts).
   const servings = await weekServings(db, weekId)
 
   // 1. Aggregate the plan, then round each amount up to something you can
@@ -80,7 +80,6 @@ export async function buildListForWeek(
   const slots = new Map<number, AggregateSlot>()
   for (const r of rows) {
     const scale = servings.get(r.slot_id)?.factor ?? 1
-    if (scale <= 0) continue // nobody home to eat it
     let slot = slots.get(r.slot_id)
     if (!slot) {
       slots.set(r.slot_id, (slot = { day: r.day, recipeId: r.recipe_id, scale, ingredients: [] }))

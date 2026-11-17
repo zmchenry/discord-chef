@@ -6,7 +6,7 @@ import {
   type RecipeLine,
   type RecipeNutritionResult,
 } from '../../../shared/nutrition/recipe'
-import type { Goals, Portions, WeekSlotIn } from '../../../shared/nutrition/week'
+import type { Goals, WeekSlotIn } from '../../../shared/nutrition/week'
 import { addDays } from '../../../shared/planningApi'
 import type { Meal, SlotKind } from '../../../shared/schema'
 import { getSetting, setSetting } from '../planning/db'
@@ -148,17 +148,17 @@ interface SlotRow {
   kind: SlotKind
   recipe_id: string | null
   slot_key: string | null
-  portions: string | null
+  total: number | null
 }
 
 export const slotKey = (kind: SlotKind, recipeId: string | null) => (kind === 'recipe' ? recipeId! : kind)
 
-// The week's slots with their stored split, when it still matches what the
-// slot holds.
+// The week's slots with the servings set while planning, when they still
+// match what the slot holds. plan_slot_portions keeps them in `total`.
 export async function weekSlots(db: D1Database, weekId: string): Promise<Array<WeekSlotIn & { id: number }>> {
   const { results } = await db
     .prepare(
-      `SELECT ps.id, ps.day, ps.meal, ps.kind, ps.recipe_id, p.slot_key, p.portions
+      `SELECT ps.id, ps.day, ps.meal, ps.kind, ps.recipe_id, p.slot_key, p.total
        FROM plan_slots ps LEFT JOIN plan_slot_portions p ON p.slot_id = ps.id
        WHERE ps.week_id = ?1`,
     )
@@ -170,21 +170,20 @@ export async function weekSlots(db: D1Database, weekId: string): Promise<Array<W
     meal: r.meal,
     kind: r.kind,
     recipeId: r.recipe_id,
-    portions: r.slot_key === slotKey(r.kind, r.recipe_id) ? parseJson<Portions | null>(r.portions, null) : null,
+    servings: r.slot_key === slotKey(r.kind, r.recipe_id) && r.total ? r.total : null,
   }))
 }
 
-export async function setPortions(
+export async function setServings(
   db: D1Database,
   slot: { id: number; kind: SlotKind; recipeId: string | null },
-  portions: Portions | null,
+  servings: number | null,
   userId: string,
 ): Promise<void> {
-  if (!portions) {
+  if (servings === null) {
     await db.prepare('DELETE FROM plan_slot_portions WHERE slot_id = ?1').bind(slot.id).run()
     return
   }
-  const total = Object.values(portions).reduce((a, n) => a + n, 0)
   await db
     .prepare(
       `INSERT INTO plan_slot_portions (slot_id, slot_key, portions, total, updated_by, updated_at)
@@ -192,6 +191,6 @@ export async function setPortions(
        ON CONFLICT (slot_id) DO UPDATE SET slot_key = excluded.slot_key, portions = excluded.portions,
          total = excluded.total, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
     )
-    .bind(slot.id, slotKey(slot.kind, slot.recipeId), JSON.stringify(portions), total, userId, Date.now())
+    .bind(slot.id, slotKey(slot.kind, slot.recipeId), '{}', servings, userId, Date.now())
     .run()
 }

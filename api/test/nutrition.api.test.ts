@@ -46,7 +46,7 @@ async function json<T>(req: Request, status = 200): Promise<T> {
   return (await res.json()) as T
 }
 
-it('estimates, computes recipe and week nutrition, splits portions and keeps goals', async () => {
+it('estimates, computes recipe and week nutrition, sets servings and keeps goals', async () => {
   const fetchMock = mockClaude()
   const recipe = await json<Recipe>(
     devRequest('POST', '/api/recipes', {
@@ -91,13 +91,12 @@ it('estimates, computes recipe and week nutrition, splits portions and keeps goa
   expect(week.week.Zach!.known).toBe(2)
 
   week = await json<WeekNutritionWire>(
-    devRequest('PUT', `/api/nutrition/weeks/${WEEK}/portions/${WEEK}/dinner`, { portions: { Zach: 1.5, Liz: 1.1, Ghost: 3 } }),
+    devRequest('PUT', `/api/nutrition/weeks/${WEEK}/servings/${WEEK}/dinner`, { servings: 2.4 }),
   )
-  expect(week.days[0]!.meals[2]).toMatchObject({ portions: { Zach: 1.5, Liz: 1 }, custom: true })
-  expect(week.days[0]!.people.Zach!.totals.kcal).toBe(Math.round(653.6 * 1.5))
+  expect(week.days[0]!.meals[2]).toMatchObject({ portions: { Zach: 1.25, Liz: 0.75 }, custom: true, serves: { servings: 2.5, leftovers: 2 } })
 
-  // The shopping list scales to the split plus Monday's leftovers lunch:
-  // (2.5 + 2) servings over 2.
+  // The shopping list scales to the 2½ servings plus Monday's leftovers
+  // lunch: (2.5 + 2) servings over 2.
   await json(devRequest('POST', `/api/weeks/${WEEK}/finish`, {}))
   const rice = await testDb.db
     .prepare(`SELECT quantity, unit FROM shopping_items WHERE name = 'rice'`)

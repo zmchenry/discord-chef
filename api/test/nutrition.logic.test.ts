@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { gramsFor, recipeNutrition, type IngredientNutrition } from '../../shared/nutrition/recipe'
-import { awayPeople, defaultPortions, weekNutrition, type WeekSlotIn } from '../../shared/nutrition/week'
+import { awayPeople, splitPortions, weekNutrition, type WeekSlotIn } from '../../shared/nutrition/week'
 
 const flour: IngredientNutrition = {
   per100g: { kcal: 364, protein: 10, carbs: 76, fat: 1, fiber: 3 },
@@ -64,15 +64,17 @@ describe('recipeNutrition', () => {
   })
 })
 
-describe('defaultPortions', () => {
+describe('splitPortions', () => {
+  const both = { Zach: { kcal: 2600 }, Liz: { kcal: 1800 } }
   it.each([
-    [['Zach', 'Liz'], { Zach: { kcal: 2600 }, Liz: { kcal: 1800 } }, { Zach: 1.25, Liz: 0.75 }],
-    [['Zach', 'Liz'], { Zach: { kcal: 2600 } }, { Zach: 1, Liz: 1 }], // Liz has no goal: even
-    [['Zach', 'Liz'], {}, { Zach: 1, Liz: 1 }],
-    [['Liz'], { Zach: { kcal: 2600 }, Liz: { kcal: 1800 } }, { Liz: 1 }], // Zach away
-  ])('%j %j', (home, goals, expected) => {
+    [['Zach', 'Liz'], 2, both, { Zach: 1.25, Liz: 0.75 }],
+    [['Zach', 'Liz'], 4, both, { Zach: 1.25, Liz: 0.75 }], // the 2 extra are guests
+    [['Zach', 'Liz'], 1, both, { Zach: 0.5, Liz: 0.5 }], // fewer servings shrink both
+    [['Zach', 'Liz'], 2, { Zach: { kcal: 2600 } }, { Zach: 1, Liz: 1 }], // Liz has no goal: even
+    [['Liz'], 2, both, { Liz: 1 }], // Zach away
+  ])('%j %s %j', (home, servings, goals, expected) => {
     const g = Object.fromEntries(Object.entries(goals).map(([p, x]) => [p, { protein: null, carbs: null, fat: null, ...x }]))
-    expect(defaultPortions(home, g)).toEqual(expected)
+    expect(splitPortions(home, servings, g)).toEqual(expected)
   })
 })
 
@@ -89,8 +91,8 @@ describe('weekNutrition', () => {
     title: `R${kcal}`,
     nutrition: { perServing: per(kcal), servings: 4, servingsAssumed: false, confidence: 'high' as const, score: 1, lines: 3, missing: 0 },
   })
-  const slot = (date: string, meal: WeekSlotIn['meal'], kind: WeekSlotIn['kind'], recipeId: string | null = null, portions = null) =>
-    ({ date, meal, kind, recipeId, portions }) as WeekSlotIn
+  const slot = (date: string, meal: WeekSlotIn['meal'], kind: WeekSlotIn['kind'], recipeId: string | null = null, servings = null) =>
+    ({ date, meal, kind, recipeId, servings }) as WeekSlotIn
 
   it('counts leftovers as the previous dinner, eat-out and empty meals as gaps, and leaves out who is away', () => {
     const r = weekNutrition({
@@ -117,7 +119,7 @@ describe('weekNutrition', () => {
     expect(r.people.Liz).toMatchObject({ totals: { kcal: 1000 }, daysHome: 1 })
   })
 
-  it('applies a stored split and the goal-weighted default', () => {
+  it('splits the first 2 servings by goals; more servings are guests', () => {
     const r = weekNutrition({
       dates: ['2026-11-22'],
       people: ['Zach', 'Liz'],
@@ -126,13 +128,13 @@ describe('weekNutrition', () => {
       away: {},
       slots: [
         slot('2026-11-22', 'lunch', 'recipe', 'a'),
-        { ...slot('2026-11-22', 'dinner', 'recipe', 'a'), portions: { Zach: 1.5, Liz: 1 } },
+        { ...slot('2026-11-22', 'dinner', 'recipe', 'a'), servings: 3.5 },
       ],
     })
     const [day] = r.days
     expect(day!.meals[1]).toMatchObject({ portions: { Zach: 1.25, Liz: 0.75 }, custom: false })
-    expect(day!.meals[2]).toMatchObject({ portions: { Zach: 1.5, Liz: 1 }, custom: true })
-    expect(day!.people.Zach!.totals.kcal).toBe(600 * 2.75)
-    expect(day!.people.Liz!.totals.kcal).toBe(600 * 1.75)
+    expect(day!.meals[2]).toMatchObject({ portions: { Zach: 1.25, Liz: 0.75 }, custom: true, serves: { servings: 3.5 } })
+    expect(day!.people.Zach!.totals.kcal).toBe(600 * 2.5)
+    expect(day!.people.Liz!.totals.kcal).toBe(600 * 1.5)
   })
 })

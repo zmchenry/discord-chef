@@ -34,7 +34,6 @@ import { runOrganizeBackfill } from './recipePresentation/backfill'
 import { notificationRoutes } from './notifications/routes'
 import { pantryRoutes } from './pantry/routes'
 import { nutritionAfterWrites, nutritionRoutes } from './nutrition/routes'
-import { householdRoutes } from './household/routes'
 import { planningRoutes } from './planning/routes'
 import { priceRoutes } from './prices/routes'
 import { recipePresentationRoutes } from './recipePresentation/routes'
@@ -204,7 +203,6 @@ app.route('/', guidedDinnersRoutes)
 app.route('/', calendarRefreshRoutes)
 app.route('/', discoveryRoutes)
 app.route('/', nutritionRoutes)
-app.route('/', householdRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 

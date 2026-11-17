@@ -1,7 +1,6 @@
 // Week nutrition per person, and the default portion split. Pure: no I/O.
 
-import type { Member } from '../household'
-import { adult, planServings, type MealServings } from '../household/servings'
+import { planServings, splitPortions, type MealServings } from '../household/servings'
 import type { Meal, SlotKind } from '../schema'
 import {
   addNutrients,
@@ -23,9 +22,8 @@ export interface Goal {
 export type Goals = Record<string, Goal>
 export type Portions = Record<string, number>
 
-// The default split and the quarter-serving rounding live with the
-// household servings math; re-exported here for existing callers.
-export { defaultPortions, roundPortion } from '../household/servings'
+// The split of a meal's servings lives with the servings math.
+export { roundPortion, splitPortions } from '../household/servings'
 
 // Who a day's calendar constraints say is away. The calendar writes
 // "Liz away → cook for 1"; a reason naming nobody marks nobody away.
@@ -46,8 +44,8 @@ export interface WeekSlotIn {
   meal: Meal
   kind: SlotKind
   recipeId: string | null
-  // A stored split, or null for the default.
-  portions: Portions | null
+  // Servings set while planning, or null for the default (2).
+  servings: number | null
 }
 
 export interface WeekNutritionInput {
@@ -58,9 +56,6 @@ export interface WeekNutritionInput {
   recipes: Record<string, { title: string; nutrition: RecipeNutritionResult }>
   // date -> people away that day.
   away: Record<string, readonly string[]>
-  // Everyone who eats at home, kids included. Absent: `people` as adults
-  // who eat every meal at home.
-  members?: readonly Member[]
   // recipe id -> servings as written, for recipes with no nutrition too.
   // Absent: the servings of `recipes`.
   recipeServings?: Record<string, number | null>
@@ -81,8 +76,8 @@ export interface MealNutrition {
   custom: boolean
   perServing: Nutrients | null
   confidence: Confidence | null
-  // Who the meal feeds and how far the recipe scales (household/servings).
-  serves: Pick<MealServings, 'sourceId' | 'adults' | 'kids' | 'total' | 'leftovers' | 'factor'>
+  // How many it makes and how far the recipe scales (household/servings).
+  serves: Pick<MealServings, 'sourceId' | 'servings' | 'leftovers' | 'factor'>
 }
 
 export interface PersonDay {
@@ -118,10 +113,7 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
   const scoreSum: Record<string, number> = {}
   const servings = planServings({
     dates,
-    members: input.members ?? people.map(adult),
-    goals: input.goals,
     slots: input.slots,
-    away: input.away,
     recipeServings:
       input.recipeServings ?? Object.fromEntries(Object.entries(recipes).map(([id, r]) => [id, r.nutrition.servings])),
   })
@@ -136,11 +128,12 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
     const meals = servings.slice(i * 3, i * 3 + 3).map((s): MealNutrition => {
       const recipe = s.sourceId ? recipes[s.sourceId] : undefined
       const status: MealStatus = !s.kind ? 'empty' : recipe ? 'known' : 'gap'
-      // Someone home that day but not eating this meal at home is a gap too.
+      // The people home split the first servings; the rest are guests.
+      const portions = s.kind ? splitPortions(home, s.servings, input.goals) : {}
       for (const p of home) {
         const d = day[p]!
-        if (recipe && p in s.portions) {
-          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, s.portions[p]!)
+        if (recipe) {
+          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, portions[p]!)
           d.known++
           scoreSum[p] = (scoreSum[p] ?? 0) + recipe.nutrition.score
         } else {
@@ -153,11 +146,11 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
         status,
         recipeId: recipe ? s.sourceId : null,
         title: recipe?.title ?? null,
-        portions: s.portions,
+        portions,
         custom: s.custom,
         perServing: recipe ? roundNutrients(recipe.nutrition.perServing) : null,
         confidence: recipe ? recipe.nutrition.confidence : null,
-        serves: { sourceId: s.sourceId, adults: s.adults, kids: s.kids, total: s.total, leftovers: s.leftovers, factor: s.factor },
+        serves: { sourceId: s.sourceId, servings: s.servings, leftovers: s.leftovers, factor: s.factor },
       }
     })
     for (const p of people) day[p]!.totals = roundNutrients(day[p]!.totals)
