@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
 import { BreakfastLunchPage } from "./features/guidedDinners/BreakfastLunchPage";
+import { CookPage } from "./features/recipeExperience/CookPage";
 import { ImportPage } from "./features/linkImport/ImportPage";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
@@ -25,6 +26,7 @@ const ModalDemo = import.meta.env.DEV
 export default function App() {
   return (
     <Routes>
+      <Route path="recipes/:id/cook" element={<CookPage />} />
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/week" replace />} />
         <Route path="week" element={<WeekPage />} />
