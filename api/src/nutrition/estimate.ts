@@ -5,7 +5,8 @@ import { askClaudeJson } from '../linkImport/claude'
 // migration 0009), asked of Claude in batches and kept for good. No external
 // nutrition database: these are estimates and are labelled as such.
 
-export const ESTIMATE_BATCH = 40
+// Small enough that one answer comes back well inside the 30 s timeout.
+export const ESTIMATE_BATCH = 20
 // One refresh never asks about more than this many ingredients.
 const MAX_PER_RUN = 240
 // An ingredient asked about in this isolate is not asked again for a while,

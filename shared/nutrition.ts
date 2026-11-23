@@ -26,10 +26,14 @@ export const recipeNutritionSchema = z.object({
   missing: z.number().int(),
   // An estimate for missing ingredients is running; ask again shortly.
   filling: z.boolean(),
+  // Positions of lines whose amount Claude estimated (they had none).
+  estimatedAmounts: z.array(z.number().int()).default([]),
 })
 export type RecipeNutritionWire = z.infer<typeof recipeNutritionSchema>
 
-// GET/PUT /api/settings/goals: one row per household person, daily targets.
+// GET/PUT /api/settings/goals: one row per household person, daily targets
+// (kcal, then grams). Fiber is optional: a row without it (the first
+// version) reads as no fiber goal.
 const goalNumber = (max: number) => z.number().int().min(0).max(max).nullable()
 export const goalSchema = z.object({
   person: z.string().trim().min(1).max(40),
@@ -37,8 +41,10 @@ export const goalSchema = z.object({
   protein: goalNumber(1_000),
   carbs: goalNumber(2_000),
   fat: goalNumber(1_000),
+  fiber: goalNumber(200).default(null),
 })
 export type GoalWire = z.infer<typeof goalSchema>
+export type GoalInput = z.input<typeof goalSchema>
 export const goalsSettingsSchema = z.object({ goals: z.array(goalSchema).max(10) })
 export type GoalsSettings = z.infer<typeof goalsSettingsSchema>
 
@@ -88,6 +94,8 @@ export const weekNutritionSchema = z.object({
       totals: nutrientsSchema,
       perDay: nutrientsSchema,
       daysHome: z.number().int(),
+      daysKnown: z.number().int(),
+      partialDays: z.number().int(),
       known: z.number().int(),
       gaps: z.number().int(),
       confidence: confidenceSchema.nullable(),
@@ -96,6 +104,30 @@ export const weekNutritionSchema = z.object({
   filling: z.boolean(),
 })
 export type WeekNutritionWire = z.infer<typeof weekNutritionSchema>
+
+// GET /api/nutrition/trends?end=<week>&weeks=8: each person's average per
+// day, week by week, oldest first. perDay is null for a week with nothing
+// known (a gap, not a zero). The week holding today counts through today.
+export const trendWeekSchema = z.object({
+  weekId: isoDateSchema,
+  people: z.record(
+    z.string(),
+    z.object({
+      perDay: nutrientsSchema.nullable(),
+      days: z.number().int(),
+      partial: z.number().int(),
+      unknown: z.number().int(),
+    }),
+  ),
+})
+export const nutritionTrendsSchema = z.object({
+  people: z.array(z.string()),
+  goals: z.array(goalSchema),
+  through: isoDateSchema,
+  weeks: z.array(trendWeekSchema),
+})
+export type NutritionTrendsWire = z.infer<typeof nutritionTrendsSchema>
+export const TREND_WEEKS = 8
 
 // PUT /api/nutrition/weeks/:start/servings/:date/:meal: how many servings
 // a planned meal makes, in halves. null goes back to the default (2).

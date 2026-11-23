@@ -6,6 +6,7 @@ import {
   type RecipeLine,
   type RecipeNutritionResult,
 } from '../../../shared/nutrition/recipe'
+import { normalizeGoal, normalizeGoals } from '../../../shared/nutrition/goals'
 import type { Goals, WeekSlotIn } from '../../../shared/nutrition/week'
 import { addDays } from '../../../shared/planningApi'
 import type { Meal, SlotKind } from '../../../shared/schema'
@@ -116,26 +117,22 @@ export async function ingredientIdsFor(db: D1Database, scope: { recipeId?: strin
 
 const GOALS_KEY = 'goals'
 
+// Stored as {person: {kcal, protein, carbs, fat, fiber}}. Older saves (no
+// fiber) and odd values read through normalizeGoals, so nothing migrates.
 export async function getGoals(db: D1Database): Promise<Goals> {
-  return parseJson<Goals>(await getSetting(db, GOALS_KEY), {})
+  return normalizeGoals(parseJson<unknown>(await getSetting(db, GOALS_KEY), {}))
 }
 
 // One row per person, in household order; people with no goals get nulls.
 export function goalRows(people: readonly string[], goals: Goals): GoalWire[] {
-  return people.map((person) => ({
-    person,
-    kcal: goals[person]?.kcal ?? null,
-    protein: goals[person]?.protein ?? null,
-    carbs: goals[person]?.carbs ?? null,
-    fat: goals[person]?.fat ?? null,
-  }))
+  return people.map((person) => ({ person, ...normalizeGoal(goals[person]) }))
 }
 
 // Replaces the goals of the people listed. Goals for people not listed
 // (someone removed from the household) are kept, harmlessly.
 export async function saveGoals(db: D1Database, rows: readonly GoalWire[]): Promise<void> {
   const goals = await getGoals(db)
-  for (const { person, ...g } of rows) goals[person] = g
+  for (const { person, ...g } of rows) goals[person] = normalizeGoal(g)
   await setSetting(db, GOALS_KEY, JSON.stringify(goals))
 }
 

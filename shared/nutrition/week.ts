@@ -2,6 +2,7 @@
 
 import { planServings, splitPortions, type MealServings } from '../household/servings'
 import type { Meal, SlotKind } from '../schema'
+import { mealsCountedFor } from './counted'
 import {
   addNutrients,
   confidenceOf,
@@ -18,6 +19,8 @@ export interface Goal {
   protein: number | null
   carbs: number | null
   fat: number | null
+  // Optional; goals saved before it existed have none.
+  fiber?: number | null
 }
 export type Goals = Record<string, Goal>
 export type Portions = Record<string, number>
@@ -98,6 +101,10 @@ export interface PersonWeek {
   // Per day over the days at home with at least one known meal.
   perDay: Nutrients
   daysHome: number
+  // Days averaged (at home, at least one known meal) and how many of
+  // those had a meal unknown too.
+  daysKnown: number
+  partialDays: number
   known: number
   gaps: number
   confidence: Confidence | null
@@ -130,16 +137,6 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
       const status: MealStatus = !s.kind ? 'empty' : recipe ? 'known' : 'gap'
       // The people home split the first servings; the rest are guests.
       const portions = s.kind ? splitPortions(home, s.servings, input.goals) : {}
-      for (const p of home) {
-        const d = day[p]!
-        if (recipe) {
-          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, portions[p]!)
-          d.known++
-          scoreSum[p] = (scoreSum[p] ?? 0) + recipe.nutrition.score
-        } else {
-          d.gaps++
-        }
-      }
       return {
         meal: s.meal,
         kind: s.kind,
@@ -153,6 +150,19 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
         serves: { sourceId: s.sourceId, servings: s.servings, leftovers: s.leftovers, factor: s.factor },
       }
     })
+    for (const { meal, as } of mealsCountedFor({ date, meals })) {
+      const recipe = as === 'known' && meal.recipeId ? recipes[meal.recipeId] : undefined
+      for (const p of home) {
+        const d = day[p]!
+        if (recipe) {
+          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, meal.portions[p] ?? 0)
+          d.known++
+          scoreSum[p] = (scoreSum[p] ?? 0) + recipe.nutrition.score
+        } else {
+          d.gaps++
+        }
+      }
+    }
     for (const p of people) day[p]!.totals = roundNutrients(day[p]!.totals)
     return { date, meals, people: day }
   })
@@ -170,6 +180,8 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
       totals: roundNutrients(totals),
       perDay: roundNutrients(daysKnown ? scaleNutrients(totals, 1 / daysKnown) : ZERO),
       daysHome: mine.length,
+      daysKnown,
+      partialDays: mine.filter((d) => d.known > 0 && d.gaps > 0).length,
       known,
       gaps,
       confidence: score === null ? null : confidenceOf(score),

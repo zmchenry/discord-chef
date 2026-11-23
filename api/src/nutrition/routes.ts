@@ -6,21 +6,25 @@ import {
   goalsSettingsSchema,
   nutritionRefreshInputSchema,
   servingsInputSchema,
+  TREND_WEEKS,
   type GoalsSettings,
   type NutritionRefreshResponse,
+  type NutritionTrendsWire,
   type RecipeNutritionWire,
   type WeekNutritionWire,
 } from '../../../shared/nutrition'
 import { roundNutrients } from '../../../shared/nutrition/recipe'
 import { clampServings } from '../../../shared/household/servings'
 import { awayPeople, weekNutrition } from '../../../shared/nutrition/week'
-import { weekDates, weekIdSchema } from '../../../shared/planningApi'
+import { averageDays } from '../../../shared/nutrition/goals'
+import { addDays, sundayOf, todayIn, weekDates, weekIdSchema } from '../../../shared/planningApi'
 import { mealSchema, type ErrorResponse } from '../../../shared/schema'
 import { weekConstraints } from '../planning/calendar'
 import { getHousehold } from '../planning/db'
 import { requireSession, type AppEnv } from '../session'
 import { waitUntilFor } from '../shopping/prices'
 import { getGoals, goalRows, ingredientIdsFor, loadRecipes, recipeExists, saveGoals, setServings, weekSlots } from './db'
+import { estimatedPositions } from './amounts'
 import { fillNutrition, missingNutrition, wouldAsk } from './estimate'
 
 // Nutrition estimates, goals and planned servings. Mounted under /api by index.ts.
@@ -53,7 +57,8 @@ type Defer = (p: Promise<unknown>) => void
 nutrition.get('/nutrition/recipes/:id', async (c) => {
   const id = c.req.param('id')
   if (!(await recipeExists(c.env.DB, id))) return notFound(c)
-  const r = (await loadRecipes(c.env.DB, [id])).get(id)
+  const [loaded, estimatedAmounts] = await Promise.all([loadRecipes(c.env.DB, [id]), estimatedPositions(c.env.DB, id)])
+  const r = loaded.get(id)
   const filling = !!r && r.missingIds.length > 0 && wouldAsk(c.env, r.missingIds)
   if (filling) waitUntilFor(c)(fillNutrition(c.env, r.missingIds))
   const n = r?.nutrition
@@ -66,40 +71,68 @@ nutrition.get('/nutrition/recipes/:id', async (c) => {
     lines: n?.lines ?? 0,
     missing: n?.missing ?? 0,
     filling,
+    estimatedAmounts,
   })
 })
 
 // --- Weeks -----------------------------------------------------------------
 
-export async function weekNutritionView(env: Env, weekId: string, defer: Defer): Promise<WeekNutritionWire> {
+// Nutrition for whole weeks: household, goals and the calendar once, then
+// each week's plan through the shared math.
+async function weeksNutrition(env: Env, weekIds: readonly string[], defer: Defer) {
   const db = env.DB
-  const dates = weekDates(weekId)
-  const [household, goals, slots] = await Promise.all([getHousehold(db), getGoals(db), weekSlots(db, weekId)])
+  const allDates = weekIds.flatMap(weekDates)
+  const [household, goals, slotsByWeek] = await Promise.all([
+    getHousehold(db),
+    getGoals(db),
+    Promise.all(weekIds.map((w) => weekSlots(db, w))),
+  ])
   const people = household.people
-  const calendar = await weekConstraints(db, dates, household)
-  const loaded = await loadRecipes(db, slots.flatMap((s) => (s.recipeId ? [s.recipeId] : [])))
+  const calendar = await weekConstraints(db, allDates, household)
+  const loaded = await loadRecipes(db, slotsByWeek.flat().flatMap((s) => (s.recipeId ? [s.recipeId] : [])))
   const missing = [...new Set([...loaded.values()].flatMap((r) => r.missingIds))]
   const filling = missing.length > 0 && wouldAsk(env, missing)
   if (filling) defer(fillNutrition(env, missing))
 
   // A recipe with no usable line is unknown, not zero.
   const recipes = Object.fromEntries([...loaded].filter(([, r]) => r.nutrition.missing < r.nutrition.lines))
-  const result = weekNutrition({
-    dates,
+  const recipeServings = Object.fromEntries([...loaded].map(([id, r]) => [id, r.nutrition.servings]))
+  const results = weekIds.map((weekId, i) => {
+    const dates = weekDates(weekId)
+    return weekNutrition({
+      dates,
+      people,
+      goals,
+      slots: slotsByWeek[i]!,
+      recipes,
+      away: Object.fromEntries(dates.map((d) => [d, awayPeople(calendar.byDay[d] ?? [], people)])),
+      recipeServings,
+    })
+  })
+  return { people, goals: goalRows(people, goals), results, filling }
+}
+
+export async function weekNutritionView(env: Env, weekId: string, defer: Defer): Promise<WeekNutritionWire> {
+  const { people, goals, results, filling } = await weeksNutrition(env, [weekId], defer)
+  return { weekId, people, goals, days: results[0]!.days, week: results[0]!.people, filling }
+}
+
+// The last `weeks` weeks ending with `end`, each person's average per day.
+// Days after today don't count yet.
+export async function trendsView(env: Env, end: string, weeks: number, defer: Defer): Promise<NutritionTrendsWire> {
+  const through = todayIn()
+  const weekIds = Array.from({ length: weeks }, (_, i) => addDays(end, (i - weeks + 1) * 7))
+  const { people, goals, results } = await weeksNutrition(env, weekIds, defer)
+  return {
     people,
     goals,
-    slots,
-    recipes,
-    away: Object.fromEntries(dates.map((d) => [d, awayPeople(calendar.byDay[d] ?? [], people)])),
-    recipeServings: Object.fromEntries([...loaded].map(([id, r]) => [id, r.nutrition.servings])),
-  })
-  return {
-    weekId,
-    people,
-    goals: goalRows(people, goals),
-    days: result.days,
-    week: result.people,
-    filling,
+    through,
+    weeks: weekIds.map((weekId, i) => ({
+      weekId,
+      people: Object.fromEntries(
+        people.map((p) => [p, averageDays(results[i]!.days.filter((d) => d.date <= through).map((d) => d.people[p]!))]),
+      ),
+    })),
   }
 }
 
@@ -107,6 +140,13 @@ function weekParam(c: Context): string | null {
   const parsed = weekIdSchema.safeParse(c.req.param('start'))
   return parsed.success ? parsed.data : null
 }
+
+nutrition.get('/nutrition/trends', async (c) => {
+  const end = weekIdSchema.safeParse(c.req.query('end') ?? sundayOf(todayIn()))
+  const weeks = Math.min(26, Math.max(1, Number(c.req.query('weeks') ?? TREND_WEEKS) || TREND_WEEKS))
+  if (!end.success) return notFound(c)
+  return c.json(await trendsView(c.env, end.data, weeks, waitUntilFor(c)))
+})
 
 nutrition.get('/nutrition/weeks/:start', async (c) => {
   const weekId = weekParam(c)

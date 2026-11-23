@@ -35,6 +35,7 @@ import { runNotificationCron } from './notifications/cron'
 import { runOrganizeBackfill } from './recipePresentation/backfill'
 import { notificationRoutes } from './notifications/routes'
 import { pantryRoutes } from './pantry/routes'
+import { runNutritionBackfill } from './nutrition/backfill'
 import { nutritionAfterWrites, nutritionRoutes } from './nutrition/routes'
 import { planningRoutes } from './planning/routes'
 import { priceRoutes } from './prices/routes'
@@ -252,5 +253,6 @@ export default {
     await runPhotoReminders(env, controller.scheduledTime)
     await runCalendarCron(env, controller.scheduledTime)
     await runOrganizeBackfill(env, controller.scheduledTime)
+    await runNutritionBackfill(env)
   },
 } satisfies ExportedHandler<Env>
