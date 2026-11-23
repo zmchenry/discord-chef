@@ -8,6 +8,7 @@ import { Card } from "../../components/ui";
 import { ReasonText } from "../../components/ReasonText";
 import { cx } from "../../lib/cx";
 import { DayNutritionBar } from "../nutrition/DayNutritionBar";
+import { DayCardMenu } from "../scratchpad/DayCardMenu";
 import { dayName, MARKER_LABEL, MEAL_LABEL, shortDate } from "./format";
 
 const MARKER_ICON: Record<Exclude<SlotKind, "recipe">, LucideIcon> = {
@@ -33,12 +34,15 @@ export function DayCard({
         <h2 className="m-0 text-xl">
           {dayName(day.date)} <span className="font-body text-sm font-semibold text-muted">{shortDate(day.date)}</span>
         </h2>
-        {day.theme && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-sm font-semibold text-primary">
-            <Tag size={14} aria-hidden="true" />
-            {day.theme.label}
-          </span>
-        )}
+        <span className="-my-1 -mr-2 ml-auto flex items-center gap-1">
+          {day.theme && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-sm font-semibold text-primary">
+              <Tag size={14} aria-hidden="true" />
+              {day.theme.label}
+            </span>
+          )}
+          <DayCardMenu date={day.date} title={`${dayName(day.date)} ${shortDate(day.date)}`} />
+        </span>
       </div>
       <DayEvents events={day.events} />
       {day.constraints.length > 0 && (
