@@ -8,6 +8,7 @@ import { Modal } from "../../components/Modal";
 import { Sheet } from "../../components/Sheet";
 import { Button, LinkButton, StateMessage } from "../../components/ui";
 import { CookPhotoCard } from "../dishPhotos/DishPhoto";
+import { markCooked } from "../mealHistory/api";
 import { cx } from "../../lib/cx";
 import { useRecipe } from "../../lib/queries";
 import { prefersReducedMotion, useWakeLock } from "./device";
@@ -206,7 +207,14 @@ function CookView({ recipe: r }: { recipe: Recipe }) {
                 <ArrowLeft size={22} aria-hidden="true" />
                 Previous
               </Button>
-              <Button className="min-h-14 text-lg" onClick={() => (last ? askExit(true) : go(step + 1))}>
+              <Button
+                className="min-h-14 text-lg"
+                onClick={() => {
+                  if (!last) return go(step + 1);
+                  markCooked(r.id); // marks today's planned meal eaten, if it is one
+                  askExit(true);
+                }}
+              >
                 {last ? "Done" : "Next"}
                 {!last && <ArrowRight size={22} aria-hidden="true" />}
               </Button>

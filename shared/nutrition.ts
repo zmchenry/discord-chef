@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { mealStatusSchema } from './mealHistory'
 import { isoDateSchema, mealSchema, slotKindSchema } from './schema'
 
 // The wire contract for the nutrition endpoints (api/src/nutrition). The
@@ -54,6 +55,8 @@ export const mealNutritionSchema = z.object({
   meal: mealSchema,
   kind: slotKindSchema.nullable(),
   status: z.enum(['known', 'gap', 'empty']),
+  // What meal history says happened; null for meals still to come.
+  history: mealStatusSchema.nullable().default(null),
   recipeId: z.string().nullable(),
   title: z.string().nullable(),
   portions: portionsSchema,

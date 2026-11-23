@@ -1,6 +1,7 @@
 // Week nutrition per person, and the default portion split. Pure: no I/O.
 
 import { planServings, splitPortions, type MealServings } from '../household/servings'
+import type { MealEntry, MealStatus as HistoryStatus } from '../mealHistory'
 import type { Meal, SlotKind } from '../schema'
 import { mealsCountedFor } from './counted'
 import {
@@ -62,6 +63,9 @@ export interface WeekNutritionInput {
   // recipe id -> servings as written, for recipes with no nutrition too.
   // Absent: the servings of `recipes`.
   recipeServings?: Record<string, number | null>
+  // What was actually eaten (shared/mealHistory resolveEntries), for past
+  // meals. Absent: the plan.
+  history?: ReadonlyArray<Pick<MealEntry, 'date' | 'meal' | 'status' | 'recipeId'>>
 }
 
 // known: we have numbers. gap: eaten but unknown (eat out, skip, leftovers
@@ -72,7 +76,11 @@ export interface MealNutrition {
   meal: Meal
   kind: SlotKind | null
   status: MealStatus
-  // The recipe eaten: the slot's own, or for leftovers the dinner before.
+  // What meal history says happened (eaten, swapped, ate out, skipped), or
+  // null when it says nothing (still to come).
+  history: HistoryStatus | null
+  // The recipe eaten: the slot's own, for leftovers the dinner before, or
+  // what was swapped in. Null when unknown.
   recipeId: string | null
   title: string | null
   portions: Portions
@@ -132,16 +140,30 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
       people.map((p) => [p, { home: !away.has(p), totals: ZERO, known: 0, gaps: 0 }]),
     )
 
-    const meals = servings.slice(i * 3, i * 3 + 3).map((s): MealNutrition => {
-      const recipe = s.sourceId ? recipes[s.sourceId] : undefined
-      const status: MealStatus = !s.kind ? 'empty' : recipe ? 'known' : 'gap'
+    const planned = servings.slice(i * 3, i * 3 + 3)
+    const counted = mealsCountedFor({ date, meals: planned }, input.history)
+    const meals = planned.map((s, j): MealNutrition => {
+      const c = counted[j]!
+      const recipe = c.recipeId ? recipes[c.recipeId] : undefined
+      const status: MealStatus = !s.kind && !c.history ? 'empty' : recipe ? 'known' : 'gap'
       // The people home split the first servings; the rest are guests.
-      const portions = s.kind ? splitPortions(home, s.servings, input.goals) : {}
+      const portions = status !== 'empty' ? splitPortions(home, s.servings, input.goals) : {}
+      for (const p of home) {
+        const d = day[p]!
+        if (recipe) {
+          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, portions[p] ?? 0)
+          d.known++
+          scoreSum[p] = (scoreSum[p] ?? 0) + recipe.nutrition.score
+        } else {
+          d.gaps++
+        }
+      }
       return {
         meal: s.meal,
         kind: s.kind,
         status,
-        recipeId: recipe ? s.sourceId : null,
+        history: c.history,
+        recipeId: recipe ? c.recipeId : null,
         title: recipe?.title ?? null,
         portions,
         custom: s.custom,
@@ -150,19 +172,6 @@ export function weekNutrition(input: WeekNutritionInput): WeekNutritionResult {
         serves: { sourceId: s.sourceId, servings: s.servings, leftovers: s.leftovers, factor: s.factor },
       }
     })
-    for (const { meal, as } of mealsCountedFor({ date, meals })) {
-      const recipe = as === 'known' && meal.recipeId ? recipes[meal.recipeId] : undefined
-      for (const p of home) {
-        const d = day[p]!
-        if (recipe) {
-          d.totals = addNutrients(d.totals, recipe.nutrition.perServing, meal.portions[p] ?? 0)
-          d.known++
-          scoreSum[p] = (scoreSum[p] ?? 0) + recipe.nutrition.score
-        } else {
-          d.gaps++
-        }
-      }
-    }
     for (const p of people) day[p]!.totals = roundNutrients(day[p]!.totals)
     return { date, meals, people: day }
   })

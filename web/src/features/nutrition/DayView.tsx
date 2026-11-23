@@ -119,8 +119,17 @@ function MealsBreakdown({ data, day, weekId }: { data: WeekNutritionWire; day: D
       <Card className="divide-y divide-border">
         {day.meals.map((m) => {
           const title = m.title ?? slotTitle(m);
+          const linkId = m.recipeId ?? m.serves.sourceId;
           const why =
-            m.status === "empty"
+            m.history === "ate_out"
+              ? "Ate out · not counted"
+              : m.history === "skipped"
+                ? "Skipped · not counted"
+                : m.history === "swapped"
+                  ? m.status === "known"
+                    ? "Swapped in"
+                    : "Swapped · not counted"
+                  : m.status === "empty"
               ? "Nothing planned · not counted"
               : m.status === "gap"
                 ? m.kind && m.kind !== "recipe"
@@ -136,9 +145,9 @@ function MealsBreakdown({ data, day, weekId }: { data: WeekNutritionWire; day: D
                 {why && <span className="text-xs text-muted">{why}</span>}
               </div>
               {title &&
-                (m.serves.sourceId ? (
-                  <Link to={`/recipes/${m.serves.sourceId}`} className="font-semibold text-text">
-                    {m.kind === "leftovers" ? `Leftovers: ${title}` : title}
+                (linkId ? (
+                  <Link to={`/recipes/${linkId}`} className="font-semibold text-text">
+                    {m.kind === "leftovers" && m.history !== "swapped" ? `Leftovers: ${title}` : title}
                   </Link>
                 ) : (
                   <span className="font-semibold">{title}</span>

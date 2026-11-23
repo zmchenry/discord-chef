@@ -31,6 +31,8 @@ import { runPhotoReminders } from './dishPhotos/reminders'
 import { runCalendarCron } from './calendarRefresh/cron'
 import { guidedDinnersRoutes } from './guidedDinners/routes'
 import { linkImportRoutes } from './linkImport/routes'
+import { mealHistoryRoutes } from './mealHistory/routes'
+import { runDinnerRatingPush } from './mealHistory/push'
 import { runNotificationCron } from './notifications/cron'
 import { runOrganizeBackfill } from './recipePresentation/backfill'
 import { notificationRoutes } from './notifications/routes'
@@ -203,6 +205,7 @@ app.route('/', linkImportRoutes)
 app.route('/', textImportRoutes)
 app.route('/', notificationRoutes)
 app.route('/', planningRoutes)
+app.route('/', mealHistoryRoutes)
 app.route('/', guidedDinnersRoutes)
 app.route('/', calendarRefreshRoutes)
 app.route('/', discoveryRoutes)
@@ -251,6 +254,7 @@ export default {
   async scheduled(controller, env, _ctx) {
     await runNotificationCron(env, controller.scheduledTime)
     await runPhotoReminders(env, controller.scheduledTime)
+    await runDinnerRatingPush(env, controller.scheduledTime)
     await runCalendarCron(env, controller.scheduledTime)
     await runOrganizeBackfill(env, controller.scheduledTime)
     await runNutritionBackfill(env)

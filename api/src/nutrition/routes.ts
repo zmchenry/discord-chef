@@ -19,6 +19,7 @@ import { awayPeople, weekNutrition } from '../../../shared/nutrition/week'
 import { averageDays } from '../../../shared/nutrition/goals'
 import { addDays, sundayOf, todayIn, weekDates, weekIdSchema } from '../../../shared/planningApi'
 import { mealSchema, type ErrorResponse } from '../../../shared/schema'
+import { loadHistory } from '../mealHistory/db'
 import { weekConstraints } from '../planning/calendar'
 import { getHousehold } from '../planning/db'
 import { requireSession, type AppEnv } from '../session'
@@ -82,14 +83,18 @@ nutrition.get('/nutrition/recipes/:id', async (c) => {
 async function weeksNutrition(env: Env, weekIds: readonly string[], defer: Defer) {
   const db = env.DB
   const allDates = weekIds.flatMap(weekDates)
-  const [household, goals, slotsByWeek] = await Promise.all([
+  const [household, goals, slotsByWeek, history] = await Promise.all([
     getHousehold(db),
     getGoals(db),
     Promise.all(weekIds.map((w) => weekSlots(db, w))),
+    loadHistory(db, allDates[0]!, allDates[allDates.length - 1]!),
   ])
   const people = household.people
   const calendar = await weekConstraints(db, allDates, household)
-  const loaded = await loadRecipes(db, slotsByWeek.flat().flatMap((s) => (s.recipeId ? [s.recipeId] : [])))
+  const loaded = await loadRecipes(db, [
+    ...slotsByWeek.flat().flatMap((s) => (s.recipeId ? [s.recipeId] : [])),
+    ...history.flatMap((e) => (e.recipeId ? [e.recipeId] : [])),
+  ])
   const missing = [...new Set([...loaded.values()].flatMap((r) => r.missingIds))]
   const filling = missing.length > 0 && wouldAsk(env, missing)
   if (filling) defer(fillNutrition(env, missing))
@@ -107,6 +112,7 @@ async function weeksNutrition(env: Env, weekIds: readonly string[], defer: Defer
       recipes,
       away: Object.fromEntries(dates.map((d) => [d, awayPeople(calendar.byDay[d] ?? [], people)])),
       recipeServings,
+      history,
     })
   })
   return { people, goals: goalRows(people, goals), results, filling }

@@ -13,6 +13,7 @@ import { MethodSection, MoreSection, NutritionSlot, RecipeHero } from "../featur
 import { TidyUpModal } from "../features/recipePresentation/TidyUpModal";
 import { useOrganizing } from "../features/recipePresentation/queries";
 import { useRecipeExperience } from "../features/recipeExperience/recipeActions";
+import { RecipeHistoryLine } from "../features/mealHistory/RecipeHistoryLine";
 import { formatMinutes, totalMinutes } from "../lib/recipeForm";
 import { useArchiveRecipe, useRecipe } from "../lib/queries";
 
@@ -107,6 +108,7 @@ export function RecipeDetailPage() {
               )}
             </ul>
           )}
+          <RecipeHistoryLine recipeId={r.id} />
           {live &&
             (noIngredients ? (
               <LinkButton to={speak} className="mt-1 min-h-12 w-full text-lg">

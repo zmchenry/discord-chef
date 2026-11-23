@@ -8,6 +8,7 @@ import {
   splitFromGrams,
   versusGoal,
 } from '../../shared/nutrition/goals'
+import { mealsCountedFor } from '../../shared/nutrition/counted'
 
 describe('gramsFromSplit', () => {
   it.each([
@@ -68,5 +69,29 @@ describe('normalizeGoals', () => {
   it('reads junk as no goals', () => {
     expect(normalizeGoals('nope')).toEqual({})
     expect(normalizeGoals(null)).toEqual({})
+  })
+})
+
+describe('mealsCountedFor', () => {
+  const day = {
+    date: '2026-11-20',
+    meals: [
+      { meal: 'breakfast' as const, kind: 'recipe' as const, sourceId: 'oats' },
+      { meal: 'lunch' as const, kind: 'leftovers' as const, sourceId: 'chili' },
+      { meal: 'dinner' as const, kind: 'recipe' as const, sourceId: 'tacos' },
+    ],
+  }
+  type S = 'eaten' | 'swapped' | 'ate_out' | 'skipped'
+  const h = (meal: 'breakfast' | 'lunch' | 'dinner', status: S, recipeId: string | null = null) => ({ date: day.date, meal, status, recipeId })
+
+  it.each([
+    ['no history: the plan', [], ['oats', 'chili', 'tacos'], [null, null, null]],
+    ['eaten as planned, leftovers too', [h('breakfast', 'eaten', 'oats'), h('lunch', 'eaten')], ['oats', 'chili', 'tacos'], ['eaten', 'eaten', null]],
+    ['swapped, skipped, ate out', [h('breakfast', 'swapped', 'eggs'), h('lunch', 'skipped'), h('dinner', 'ate_out')], ['eggs', null, null], ['swapped', 'skipped', 'ate_out']],
+    ['a free-text swap is unknown', [h('dinner', 'swapped')], ['oats', 'chili', null], [null, null, 'swapped']],
+  ])('%s', (_name, history, ids, statuses) => {
+    const out = mealsCountedFor(day, history)
+    expect(out.map((c) => c.recipeId)).toEqual(ids)
+    expect(out.map((c) => c.history)).toEqual(statuses)
   })
 })

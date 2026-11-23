@@ -11,6 +11,7 @@ import { CookPage } from "./features/recipeExperience/CookPage";
 import { LinkImportRoute } from "./features/recipeExperience/LinkImportRoute";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { GoalsPage } from "./features/nutrition/GoalsPage";
+import { HistoryPage } from "./features/mealHistory/HistoryPage";
 import { NutritionPage } from "./features/nutrition/NutritionPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { PantryPage } from "./features/pantry/PantryPage";
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="recipes/:id" element={<RecipeDetailPage />} />
         <Route path="recipes/:id/edit" element={<RecipeEditPage />} />
         <Route path="shop" element={<ShoppingPage />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="more" element={<MorePage />} />
         <Route path="more/notifications" element={<NotificationsPage />} />
         <Route path="more/themes" element={<ThemesPage />} />

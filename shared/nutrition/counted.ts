@@ -1,22 +1,42 @@
-// Which of a day's meals count toward what each person ate. Pure: no I/O.
+// Which recipe each meal of a day counts as. Pure: no I/O.
 //
-// The one place that decides it, so every nutrition view agrees. Today
-// it reads the plan: every planned meal counts, as known numbers when its
-// recipe has an estimate and as a gap (unknown, never zero) when it hasn't
-// (eat out, skip, leftovers with nothing before them, no estimate yet).
-// Empty meals don't count at all.
-//
-// When meal history ("what we actually ate": eaten / skipped / ate out)
-// lands, point this at it for past days: skipped meals drop out, ate-out
-// meals become gaps, and eaten meals count as planned.
+// The one place that decides it, so every nutrition view agrees. It merges
+// the plan with meal history ("what we actually ate", shared/mealHistory):
+//   * no history for the meal (still to come, or nothing planned and
+//     nothing logged): the plan, so leftovers count as the dinner before.
+//   * eaten: what was planned (or the recipe logged as eaten).
+//   * swapped: the recipe swapped in; a free-text swap is unknown.
+//   * ate out, skipped: unknown. A gap, never zero: they ate something.
+// Past planned meals nobody logged arrive here as eaten (resolveEntries
+// assumes the plan happened), so the result matches the plan until someone
+// says otherwise.
 
-import type { MealNutrition } from './week'
+import type { MealEntry, MealStatus } from '../mealHistory'
+import type { Meal, SlotKind } from '../schema'
 
-export interface CountedMeal {
-  meal: MealNutrition
-  as: 'known' | 'gap'
+export interface PlannedMeal {
+  meal: Meal
+  kind: SlotKind | null
+  // The planned recipe eaten: the slot's own, or for leftovers the dinner before.
+  sourceId: string | null
 }
 
-export function mealsCountedFor(day: { date: string; meals: readonly MealNutrition[] }): CountedMeal[] {
-  return day.meals.map((meal) => ({ meal, as: meal.status === 'known' ? 'known' : 'gap' }))
+export interface CountedMeal {
+  meal: Meal
+  // The recipe to count, or null when what was eaten is unknown.
+  recipeId: string | null
+  // What history says happened, or null when it says nothing.
+  history: MealStatus | null
+}
+
+export function mealsCountedFor(
+  day: { date: string; meals: readonly PlannedMeal[] },
+  history: ReadonlyArray<Pick<MealEntry, 'date' | 'meal' | 'status' | 'recipeId'>> = [],
+): CountedMeal[] {
+  return day.meals.map((m): CountedMeal => {
+    const e = history.find((h) => h.date === day.date && h.meal === m.meal)
+    if (!e) return { meal: m.meal, recipeId: m.sourceId, history: null }
+    const recipeId = e.status === 'eaten' ? (e.recipeId ?? m.sourceId) : e.status === 'swapped' ? e.recipeId : null
+    return { meal: m.meal, recipeId, history: e.status }
+  })
 }
