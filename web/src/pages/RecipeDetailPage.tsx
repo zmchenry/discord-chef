@@ -135,7 +135,7 @@ export function RecipeDetailPage() {
         </header>
       </div>
 
-      <IngredientsSection ingredients={r.ingredients} live={live} />
+      <IngredientsSection ingredients={r.ingredients} live={live} recipeId={r.id} />
       <NutritionSlot recipeId={r.id} />
       <MethodSection steps={steps} organizing={organizing} />
       <MoreSection tags={r.tags} notes={r.notes} />

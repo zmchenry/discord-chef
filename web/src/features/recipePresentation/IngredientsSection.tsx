@@ -5,6 +5,7 @@ import { displayIngredientName } from "../../../../shared/normalize";
 import type { StructuredIngredient } from "../../../../shared/recipePresentation";
 import { formatAmount, groupIngredients } from "../../../../shared/recipeStructure";
 import { Button } from "../../components/ui";
+import { useEstimatedAmounts } from "../nutrition/api";
 import { IngredientStorePin } from "../shopping/StorePin";
 import { FlavorPill } from "./pills";
 import { useAddToGroceries } from "./queries";
@@ -23,8 +24,18 @@ function ingredientDisplay(i: StructuredIngredient) {
   return { name, primary: amount.primary, secondary: extra || null };
 }
 
-export function IngredientsSection({ ingredients, live }: { ingredients: StructuredIngredient[]; live: boolean }) {
+export function IngredientsSection({
+  ingredients,
+  live,
+  recipeId,
+}: {
+  ingredients: StructuredIngredient[];
+  live: boolean;
+  recipeId?: string;
+}) {
   const add = useAddToGroceries();
+  // Amounts the nutrition backfill estimated (the line had none) show "est.".
+  const estimated = useEstimatedAmounts(recipeId);
   const groups = groupIngredients(ingredients);
   return (
     <section aria-labelledby="ingredients-title" className="grid gap-3">
@@ -65,7 +76,7 @@ export function IngredientsSection({ ingredients, live }: { ingredients: Structu
             )}
             <ul className="m-0 list-none p-0">
               {g.items.map((i) => (
-                <IngredientRow key={i.id} ingredient={i} />
+                <IngredientRow key={i.id} ingredient={i} estimated={estimated.has(i.position)} />
               ))}
             </ul>
           </div>
@@ -75,7 +86,7 @@ export function IngredientsSection({ ingredients, live }: { ingredients: Structu
   );
 }
 
-function IngredientRow({ ingredient: i }: { ingredient: StructuredIngredient }) {
+function IngredientRow({ ingredient: i, estimated }: { ingredient: StructuredIngredient; estimated: boolean }) {
   const d = ingredientDisplay(i);
   return (
     <li className="flex min-h-14 items-center gap-3 border-b border-border px-4 py-3 last:border-b-0">
@@ -92,7 +103,16 @@ function IngredientRow({ ingredient: i }: { ingredient: StructuredIngredient }) 
       {(d.primary || d.secondary) && (
         <div className="max-w-[45%] shrink-0 text-right leading-snug">
           {/* The amount always stays on one line; a note under it may wrap. */}
-          {d.primary && <div className="whitespace-nowrap font-bold">{d.primary}</div>}
+          {d.primary && (
+            <div className="whitespace-nowrap font-bold">
+              {d.primary}
+              {estimated && (
+                <abbr title="Estimated amount: the recipe didn't say" className="ml-1 text-xs font-semibold text-muted no-underline">
+                  est.
+                </abbr>
+              )}
+            </div>
+          )}
           {d.secondary && <div className="text-sm text-muted">{d.secondary}</div>}
         </div>
       )}

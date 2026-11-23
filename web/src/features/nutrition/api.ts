@@ -4,9 +4,10 @@ import type { z } from "zod";
 import {
   goalsSettingsSchema,
   nutritionRefreshResponseSchema,
+  nutritionTrendsSchema,
   recipeNutritionSchema,
   weekNutritionSchema,
-  type GoalWire,
+  type GoalInput,
   type WeekNutritionWire,
 } from "../../../../shared/nutrition";
 import { errorResponseSchema, type Meal } from "../../../../shared/schema";
@@ -47,7 +48,8 @@ export const nutritionApi = {
   refresh: (body: { weekId?: string; recipeId?: string }) =>
     request(nutritionRefreshResponseSchema, "/nutrition/refresh", { method: "POST", body }),
   goals: (signal?: AbortSignal) => request(goalsSettingsSchema, "/settings/goals", { signal }).then((r) => r.goals),
-  saveGoals: (goals: GoalWire[]) =>
+  trends: (end: string, signal?: AbortSignal) => request(nutritionTrendsSchema, `/nutrition/trends?end=${end}`, { signal }),
+  saveGoals: (goals: GoalInput[]) =>
     request(goalsSettingsSchema, "/settings/goals", { method: "PUT", body: { goals } }).then((r) => r.goals),
 };
 
@@ -56,6 +58,7 @@ export const nutritionKeys = {
   weekAll: (id: string) => ["nutrition", "week", id] as const,
   week: (id: string, sig: string) => ["nutrition", "week", id, sig] as const,
   goals: ["settings", "goals"] as const,
+  trends: (end: string) => ["nutrition", "trends", end] as const,
 };
 
 // While the server is still estimating, ask again a few times.
@@ -107,3 +110,17 @@ export function useSetServings(weekId: string) {
 }
 
 export const useGoals = () => useQuery({ queryKey: nutritionKeys.goals, queryFn: ({ signal }) => nutritionApi.goals(signal) });
+
+export const useTrends = (end: string) =>
+  useQuery({ queryKey: nutritionKeys.trends(end), queryFn: ({ signal }) => nutritionApi.trends(end, signal), staleTime: 60_000 });
+
+// Line positions of a recipe whose amounts are estimates (from the cached
+// recipe nutrition the page already loads).
+export function useEstimatedAmounts(recipeId: string | undefined): ReadonlySet<number> {
+  const q = useQuery({
+    queryKey: nutritionKeys.recipe(recipeId ?? ""),
+    queryFn: ({ signal }) => nutritionApi.recipe(recipeId!, signal),
+    enabled: !!recipeId,
+  });
+  return new Set(q.data?.estimatedAmounts ?? []);
+}

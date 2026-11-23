@@ -11,7 +11,7 @@ import { CookPage } from "./features/recipeExperience/CookPage";
 import { LinkImportRoute } from "./features/recipeExperience/LinkImportRoute";
 import { SpeakPage } from "./features/textImport/SpeakPage";
 import { GoalsPage } from "./features/nutrition/GoalsPage";
-import { WeekNutritionPage } from "./features/nutrition/WeekNutritionPage";
+import { NutritionPage } from "./features/nutrition/NutritionPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { PantryPage } from "./features/pantry/PantryPage";
 import { CalendarPage } from "./features/planning/CalendarPage";
@@ -45,7 +45,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/week" replace />} />
         <Route path="week" element={<WeekPage />} />
-        <Route path="week/nutrition" element={<WeekNutritionPage />} />
+        <Route path="week/nutrition" element={<NutritionPage />} />
         <Route path="recipes" element={<RecipesPage />} />
         <Route path="recipes/new" element={<RecipeEditPage />} />
         <Route path="recipes/import" element={<LinkImportRoute />} />

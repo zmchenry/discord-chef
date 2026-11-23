@@ -25,6 +25,7 @@ import { CalendarFreshness } from "../calendarRefresh/CalendarFreshness";
 import { ClashBanner } from "../calendarRefresh/ClashBanner";
 import { useFillBreakfastLunch } from "../guidedDinners/api";
 import { PlanDinnersFlow } from "../guidedDinners/PlanDinnersFlow";
+import { TodayCard } from "../nutrition/TodayCard";
 import { DayCard } from "./DayCard";
 import { money, shortDate } from "./format";
 import { RecommendationCard } from "./RecommendationCard";
@@ -88,7 +89,7 @@ export function WeekPage() {
       menu.push({ label: "Shopping list", icon: ShoppingBasket, onSelect: () => run("shop") });
     if (week.data.calendar !== "none")
       menu.push({ label: "Refresh calendar", icon: RefreshCw, onSelect: () => refresh.mutate(), disabled: refresh.isPending });
-    menu.push({ label: "Nutrition", icon: Gauge, onSelect: () => navigate(`/week/nutrition?week=${weekId}`) });
+    menu.push({ label: "Nutrition", icon: Gauge, onSelect: () => navigate(`/week/nutrition?view=week&week=${weekId}`) });
     menu.push({ label: "Day themes", icon: Tag, onSelect: () => navigate("/more/themes") });
     menu.push({ label: "Calendar settings", icon: CalendarCog, onSelect: () => navigate("/more/calendar") });
   }
@@ -172,6 +173,7 @@ export function WeekPage() {
           ))}
         </div>
       </div>
+      {weekId === thisWeek && <TodayCard className="mx-4 mb-3" />}
 
       {week.isPending ? (
         <StateMessage title="Loading the week…" />

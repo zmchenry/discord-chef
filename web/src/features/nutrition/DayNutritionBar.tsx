@@ -25,7 +25,7 @@ export function DayNutritionBar({ date }: { date: string }) {
 
   return (
     <Link
-      to={`/week/nutrition?week=${weekId}#d-${date}`}
+      to={`/week/nutrition?date=${date}`}
       aria-label={label}
       className="pressable mt-2 flex min-h-11 items-center gap-2 rounded-sm px-1 pt-1 text-text no-underline"
     >

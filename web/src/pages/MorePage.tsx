@@ -19,7 +19,8 @@ export function MorePage() {
         <SettingsLink to="/more/breakfast-lunch" title="Breakfast & lunch" hint="Breakfast rotation and lunch staples" />
         <SettingsLink to="/more/themes" title="Day themes" hint="Taco Tuesday and friends" />
         <SettingsLink to="/more/calendar" title="Calendar" hint="Family calendar and household" />
-        <SettingsLink to="/more/goals" title="Goals" hint="Daily calories and protein for each of you" />
+        <SettingsLink to="/week/nutrition" title="Nutrition" hint="Today, this week and trends against your goals" />
+        <SettingsLink to="/more/goals" title="Goals" hint="Daily calories, protein, carbs and fat for each of you" />
         <SettingsLink to="/more/appearance" title="Appearance" hint="Tomato Diner or Sage, light or dark" />
       </div>
     </>
