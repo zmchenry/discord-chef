@@ -8,6 +8,7 @@ import {
   type WeekSlot,
 } from '../../../shared/planningApi'
 import type { Candidate, PlannedSlot } from '../../../shared/planning/engine'
+import { withRatings } from '../mealHistory/db'
 
 // D1 access for planning. snake_case rows in, wire/engine shapes out.
 
@@ -240,7 +241,8 @@ export async function listCandidates(db: D1Database, weekId: string): Promise<Ca
       est_cost: number | null
     }>()
   const names = (r: { ingredient_names: string }) => parseJson<Record<string, string>>(r.ingredient_names, {})
-  return results.map((r) => ({
+  // Thumbs from the meal history feed the scorer's loved / disliked terms.
+  return withRatings(db, results.map((r) => ({
     recipeId: r.id,
     title: r.title,
     icon: r.icon,
@@ -251,5 +253,5 @@ export async function listCandidates(db: D1Database, weekId: string): Promise<Ca
     totalMinutes: totalMinutes(r.prep_minutes, r.cook_minutes),
     lastPlanned: r.last_planned,
     estCostCents: r.est_cost,
-  }))
+  })))
 }

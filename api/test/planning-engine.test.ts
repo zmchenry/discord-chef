@@ -168,6 +168,12 @@ describe('scoreCandidates', () => {
       [cand('pasta', { lastPlanned: '2026-11-05' }), cand('tacos', { tags: ['dinner', 'mexican'], lastPlanned: '2026-11-05' })], ['tacos', 'pasta']],
     ['a date after the slot does not count as recent',
       [cand('a', { lastPlanned: '2026-11-20', totalMinutes: 40 }), cand('b', { lastPlanned: '2026-11-12' })], ['a', 'b']],
+    ['a loved recipe not had in 4+ weeks beats an unrated one',
+      [cand('plain'), cand('loved', { rating: { up: 3, down: 0 } })], ['loved', 'plain']],
+    ['loved but had last week still sinks (recency wins)',
+      [cand('loved-lw', { lastPlanned: '2026-11-12', rating: { up: 3, down: 0 } }), cand('plain')], ['plain', 'loved-lw']],
+    ['a thumbs-down recipe sinks below an unrated one',
+      [cand('meh', { rating: { up: 0, down: 2 } }), cand('ok')], ['ok', 'meh']],
   ] as const)('recency: %s', (_name, candidates, order) => {
     const r = rank([...candidates], day(TUE, { theme: taco }))
     expect(r.map((x) => x.recipeId)).toEqual(order)
@@ -180,6 +186,12 @@ describe('scoreCandidates', () => {
       why: [{ text: 'Had it last week', tone: 'down' }, { text: 'Taco Tuesday', tone: 'up' }],
     })
     expect(r.find((x) => x.recipeId === 'pasta')).toMatchObject({ theme: false, why: [{ text: 'Not had in 6 weeks', tone: 'up' }] })
+  })
+
+  it('says why with history chips: loved is up, thumbs-down is down', () => {
+    const r = rank([cand('loved', { rating: { up: 2, down: 0 } }), cand('meh', { rating: { up: 0, down: 1 } })])
+    expect(r.find((x) => x.recipeId === 'loved')!.why).toEqual([{ text: 'You loved this, last had 6 weeks ago', tone: 'up' }])
+    expect(r.find((x) => x.recipeId === 'meh')!.why).toContainEqual({ text: 'You rated it 👎', tone: 'down' })
   })
 
   it('returns nothing for an eat_out day and breaks ties by seed only', () => {

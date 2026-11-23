@@ -23,6 +23,8 @@ export interface Candidate {
   estCostCents: number | null // null until prices exist
   /** Optional id → display name, so reasons can say "Uses cilantro from Mon". */
   ingredientNames?: Record<string, string>
+  /** Thumbs from the meal history (shared/mealHistory.ts), when any. */
+  rating?: { up: number; down: number }
 }
 
 export interface DayContext {
@@ -88,6 +90,8 @@ const W = {
   shared: 3,
   sharedPerishable: 6,
   sameMainTagAdjacent: -12,
+  loved: 14, // rated up more than down, and 4+ weeks ago
+  disliked: -20, // rated down more than up
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +112,8 @@ const sameSlot = (s: PlannedSlot, date: ISODate, meal: Meal) => s.date === date 
 // 'makes-leftovers' says how much it makes, not what it is.
 const mainTags = (c: Candidate) => c.tags.filter((t) => !VOCAB.has(t) && t !== 'makes-leftovers')
 const tagLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1).replace(/-/g, ' ')
+
+const loved = (c: Candidate) => !!c.rating && c.rating.up > c.rating.down
 
 function dayName(date: ISODate): string {
   return DAY_NAMES[weekdayOf(date)]!
@@ -262,8 +268,10 @@ export function scoreCandidates(args: {
       if (ago <= 7) term(W.lastWeek, 'Had it last week')
       else if (ago <= 14) term(W.twoWeeks, 'Had it 2 weeks ago')
       else if (weeks < 4) term(W.fairlyRecent, `Had it ${weeks} weeks ago`)
+      else if (loved(c)) term(W.notRecent + Math.min(weeks, 10) + W.loved, `You loved this, last had ${weeks} weeks ago`)
       else term(W.notRecent + Math.min(weeks, 10), `Not had in ${weeks} weeks`)
     }
+    if (c.rating && c.rating.down > c.rating.up) term(W.disliked, `You rated it 👎`)
 
     const ov = overlapWith(c, others, 'Uses')
     if (ov.points) term(ov.points, ov.reason ?? undefined)
