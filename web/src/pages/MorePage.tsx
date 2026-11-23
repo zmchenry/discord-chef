@@ -14,6 +14,7 @@ export function MorePage() {
             {me.isPending ? "Checking…" : me.isError ? "Not signed in" : me.data.email}
           </p>
         </Card>
+        <SettingsLink to="/history" title="History" hint="What we ate, and what to try next" />
         <SettingsLink to="/more/pantry" title="Pantry" hint="What's already in the house" />
         <SettingsLink to="/more/notifications" title="Notifications" hint="Reminders and what's cooking" />
         <SettingsLink to="/more/breakfast-lunch" title="Breakfast & lunch" hint="Breakfast rotation and lunch staples" />
