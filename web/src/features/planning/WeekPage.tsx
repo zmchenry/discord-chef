@@ -3,6 +3,7 @@ import {
   CalendarOff,
   Check,
   ClipboardCheck,
+  FlaskConical,
   Gauge,
   History,
   CookingPot,
@@ -93,6 +94,7 @@ export function WeekPage() {
       menu.push({ label: "Refresh calendar", icon: RefreshCw, onSelect: () => refresh.mutate(), disabled: refresh.isPending });
     menu.push({ label: "Meal history", icon: History, onSelect: () => navigate("/history") });
     menu.push({ label: "Nutrition", icon: Gauge, onSelect: () => navigate(`/week/nutrition?view=week&week=${weekId}`) });
+    menu.push({ label: "Day scratch pad", icon: FlaskConical, onSelect: () => navigate(`/plan/scratch${weekId === thisWeek ? "" : `?date=${weekId}`}`) });
     menu.push({ label: "Day themes", icon: Tag, onSelect: () => navigate("/more/themes") });
     menu.push({ label: "Calendar settings", icon: CalendarCog, onSelect: () => navigate("/more/calendar") });
   }
