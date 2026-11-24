@@ -96,7 +96,8 @@ export async function insertItems(
              recipe_id, servings, confidence, brand, created_by, created_at, updated_at)
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?18)`,
         )
-        .bind(ids[i], r.person, r.date, ...fieldArgs(r.fields), userId, now),
+        // A millisecond apart, so they list in the order given.
+        .bind(ids[i], r.person, r.date, ...fieldArgs(r.fields), userId, now + i),
     ),
   )
   return ids

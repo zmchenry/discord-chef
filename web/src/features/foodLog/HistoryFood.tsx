@@ -15,12 +15,12 @@ export function WeekFood({ week, meal }: { week: string; meal?: FoodMeal }) {
   const items = (q.data ?? []).filter((i) => i.date >= week && i.date <= end && (!meal || i.meal === meal)).reverse();
   if (!items.length) return null;
   return (
-    <div className="grid gap-1">
+    <div className="grid min-w-0 gap-1">
       <h3 className="m-0 px-1 font-body text-xs font-bold uppercase tracking-wider text-muted">Logged food</h3>
-      <ul className="m-0 grid list-none gap-0 overflow-hidden rounded-card bg-surface p-0 shadow-card">
+      <ul className="m-0 grid min-w-0 list-none gap-0 overflow-hidden rounded-card bg-surface p-0 shadow-card">
         {items.map((i) => (
-          <li key={i.id} className="flex min-h-11 items-center justify-between gap-3 border-t border-border px-3 py-2 first:border-t-0">
-            <span className="min-w-0">
+          <li key={i.id} className="flex min-h-11 min-w-0 items-center justify-between gap-3 border-t border-border px-3 py-2 first:border-t-0">
+            <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold">
                 {i.quantity ? `${i.quantity} ` : ""}
                 {i.recipeTitle ?? itemName(i)}

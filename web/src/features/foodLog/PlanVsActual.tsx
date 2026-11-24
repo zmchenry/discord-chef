@@ -3,33 +3,34 @@ import { MACRO_LABEL, type Macro } from "../../../../shared/nutrition/goals";
 import { Card } from "../../components/ui";
 import { cx } from "../../lib/cx";
 import { LineChart, type ChartPoint } from "../nutrition/charts";
-import { fmt, personSvg, withUnit } from "../nutrition/format";
+import { fmt, personFill, personSvg, withUnit } from "../nutrition/format";
 import { PersonName } from "../nutrition/parts";
 import { shortDate } from "../planning/format";
 
 type Adherence = WeekNutritionWire["week"][string]["adherence"];
 
-// Segments of the bar, in order. Followed is the only strong one; the rest
-// are quiet tones, each named in the legend so colour is never the key.
+// Segments of the bar, in order. Followed is the person's own colour; the
+// rest are neutral greys, each named in the legend so colour is never the key.
 const PARTS = [
-  { key: "followed", label: "as planned", tone: "bg-primary" },
-  { key: "logged", label: "ate other food", tone: "bg-accent" },
-  { key: "swapped", label: "swapped", tone: "bg-muted" },
-  { key: "ate_out", label: "ate out", tone: "bg-text/40" },
+  { key: "followed", label: "as planned", tone: "" },
+  { key: "logged", label: "ate other food", tone: "bg-muted" },
+  { key: "swapped", label: "swapped", tone: "bg-text/45" },
+  { key: "ate_out", label: "ate out", tone: "bg-text/25" },
   { key: "skipped", label: "skipped", tone: "bg-border" },
 ] as const;
 
-function AdherenceBar({ a }: { a: Adherence }) {
+function AdherenceBar({ a, index }: { a: Adherence; index: number }) {
   if (!a.planned) return null;
+  const tone = (p: (typeof PARTS)[number]) => p.tone || personFill(index);
   return (
     <div className="grid gap-1.5">
       <div className="flex h-2.5 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
-        {PARTS.map((p) => (a[p.key] ? <div key={p.key} className={p.tone} style={{ width: `${(a[p.key] / a.planned) * 100}%` }} /> : null))}
+        {PARTS.map((p) => (a[p.key] ? <div key={p.key} className={tone(p)} style={{ width: `${(a[p.key] / a.planned) * 100}%` }} /> : null))}
       </div>
       <p className="m-0 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
         {PARTS.filter((p) => a[p.key]).map((p) => (
           <span key={p.key} className="inline-flex items-center gap-1">
-            <span className={cx("inline-block size-2 rounded-full", p.tone)} aria-hidden="true" />
+            <span className={cx("inline-block size-2 rounded-full", tone(p))} aria-hidden="true" />
             {a[p.key]} {p.label}
           </span>
         ))}
@@ -70,7 +71,7 @@ export function PlanVsActual({ data, macro }: { data: WeekNutritionWire; macro: 
                 )}
               </span>
             </div>
-            <AdherenceBar a={a} />
+            <AdherenceBar a={a} index={i} />
             <p className="m-0 text-sm">
               {a.extras > 0 && (
                 <span>

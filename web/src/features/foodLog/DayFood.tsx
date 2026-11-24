@@ -6,7 +6,7 @@ export function MealFood({ items, meal }: { items: readonly FoodLogItem[]; meal:
   const mine = items.filter((i) => i.meal === meal);
   if (!mine.length) return null;
   return (
-    <ul aria-label="Logged" className="m-0 grid list-none gap-0 border-l-2 border-border p-0 pl-3">
+    <ul aria-label="Logged" className="m-0 grid min-w-0 list-none gap-0 border-l-2 border-border p-0 pl-3">
       {mine.map((i) => (
         <FoodRow key={i.id} item={i} />
       ))}
