@@ -41,7 +41,7 @@ export function CheckInCard() {
     Promise.all(open.map((e) => log.mutateAsync({ date: e.date, meal: e.meal, status: e.status }))).catch(() => undefined);
 
   return (
-    <section aria-labelledby="check-in-title" className="rounded-card bg-surface p-3 shadow-card">
+    <section aria-labelledby="check-in-title" className="min-w-0 rounded-card bg-surface p-3 shadow-card">
       <div className="flex items-center justify-between gap-2 px-1">
         <h2 id="check-in-title" className="m-0 font-body text-xs font-bold uppercase tracking-wider text-muted">
           How did it go?
@@ -50,12 +50,12 @@ export function CheckInCard() {
           History
         </Link>
       </div>
-      <ul className="m-0 grid list-none gap-1 p-0">
+      <ul className="m-0 grid min-w-0 list-none gap-1 p-0">
         {shown.map((e) => {
           const when = `${e.date === today ? "Today" : "Yesterday"} · ${MEAL_LABEL[e.meal]}`;
           const Status = STATUS[e.status];
           return (
-            <li key={key(e)} className="flex min-h-14 items-center gap-3 rounded-sm px-1 py-1">
+            <li key={key(e)} className="flex min-h-14 min-w-0 items-center gap-3 rounded-sm px-1 py-1">
               <EntryThumb entry={e} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">{entryTitle(e)}</span>
