@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { foodLogItemSchema } from './foodLog'
 import { mealStatusSchema } from './mealHistory'
 import { isoDateSchema, mealSchema, slotKindSchema } from './schema'
 
@@ -57,6 +58,8 @@ export const mealNutritionSchema = z.object({
   status: z.enum(['known', 'gap', 'empty']),
   // What meal history says happened; null for meals still to come.
   history: mealStatusSchema.nullable().default(null),
+  // People who logged their own food for this meal: it doesn't count for them.
+  replacedFor: z.array(z.string()).default([]),
   recipeId: z.string().nullable(),
   title: z.string().nullable(),
   portions: portionsSchema,
@@ -75,13 +78,37 @@ export const mealNutritionSchema = z.object({
 })
 export type MealNutritionWire = z.infer<typeof mealNutritionSchema>
 
+// Plan adherence counts (shared/nutrition/counted.ts adherenceOf) plus
+// extras: logged items not instead of a planned meal.
+const count = z.number().int().nonnegative()
+export const adherenceCountsSchema = z.object({
+  followed: count,
+  swapped: count,
+  ate_out: count,
+  skipped: count,
+  logged: count,
+  extras: count,
+})
+const noAdherence = { followed: 0, swapped: 0, ate_out: 0, skipped: 0, logged: 0, extras: 0 }
+
 export const dayNutritionSchema = z.object({
   date: isoDateSchema,
   meals: z.array(mealNutritionSchema),
   people: z.record(
     z.string(),
-    z.object({ home: z.boolean(), totals: nutrientsSchema, known: z.number().int(), gaps: z.number().int() }),
+    z.object({
+      home: z.boolean(),
+      totals: nutrientsSchema,
+      known: z.number().int(),
+      gaps: z.number().int(),
+      // What the plan alone would have given; food log items that day.
+      plan: nutrientsSchema.default({ kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }),
+      logged: count.default(0),
+      adherence: adherenceCountsSchema.default(noAdherence),
+    }),
   ),
+  // The day's food log, everyone's (shared/foodLog).
+  food: z.array(foodLogItemSchema).default([]),
 })
 export type DayNutritionWire = z.infer<typeof dayNutritionSchema>
 
@@ -102,6 +129,10 @@ export const weekNutritionSchema = z.object({
       known: z.number().int(),
       gaps: z.number().int(),
       confidence: confidenceSchema.nullable(),
+      planPerDay: nutrientsSchema.default({ kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }),
+      adherence: adherenceCountsSchema
+        .extend({ planned: count, rate: z.number().nullable() })
+        .default({ ...noAdherence, planned: 0, rate: null }),
     }),
   ),
   filling: z.boolean(),
@@ -120,6 +151,10 @@ export const trendWeekSchema = z.object({
       days: z.number().int(),
       partial: z.number().int(),
       unknown: z.number().int(),
+      // What the plan alone would have given, over the same days.
+      planPerDay: nutrientsSchema.nullable().default(null),
+      // Share of planned meals followed that week (null: none happened).
+      adherence: z.number().nullable().default(null),
     }),
   ),
 })

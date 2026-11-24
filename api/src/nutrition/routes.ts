@@ -17,8 +17,11 @@ import { roundNutrients } from '../../../shared/nutrition/recipe'
 import { clampServings } from '../../../shared/household/servings'
 import { awayPeople, weekNutrition } from '../../../shared/nutrition/week'
 import { averageDays } from '../../../shared/nutrition/goals'
+import { itemNutrients } from '../../../shared/foodLog'
+import { adherenceSummary } from '../../../shared/nutrition/week'
 import { addDays, sundayOf, todayIn, weekDates, weekIdSchema } from '../../../shared/planningApi'
 import { mealSchema, type ErrorResponse } from '../../../shared/schema'
+import { loadFoodLog } from '../foodLog/db'
 import { loadHistory } from '../mealHistory/db'
 import { weekConstraints } from '../planning/calendar'
 import { getHousehold } from '../planning/db'
@@ -83,12 +86,14 @@ nutrition.get('/nutrition/recipes/:id', async (c) => {
 async function weeksNutrition(env: Env, weekIds: readonly string[], defer: Defer) {
   const db = env.DB
   const allDates = weekIds.flatMap(weekDates)
-  const [household, goals, slotsByWeek, history] = await Promise.all([
+  const [household, goals, slotsByWeek, history, food] = await Promise.all([
     getHousehold(db),
     getGoals(db),
     Promise.all(weekIds.map((w) => weekSlots(db, w))),
     loadHistory(db, allDates[0]!, allDates[allDates.length - 1]!),
+    loadFoodLog(db, allDates[0]!, allDates[allDates.length - 1]!),
   ])
+  const foodLog = food.map((f) => ({ ...f, nutrients: itemNutrients(f) }))
   const people = household.people
   const calendar = await weekConstraints(db, allDates, household)
   const loaded = await loadRecipes(db, [
@@ -113,14 +118,16 @@ async function weeksNutrition(env: Env, weekIds: readonly string[], defer: Defer
       away: Object.fromEntries(dates.map((d) => [d, awayPeople(calendar.byDay[d] ?? [], people)])),
       recipeServings,
       history,
+      foodLog,
     })
   })
-  return { people, goals: goalRows(people, goals), results, filling }
+  return { people, goals: goalRows(people, goals), results, filling, food }
 }
 
 export async function weekNutritionView(env: Env, weekId: string, defer: Defer): Promise<WeekNutritionWire> {
-  const { people, goals, results, filling } = await weeksNutrition(env, [weekId], defer)
-  return { weekId, people, goals, days: results[0]!.days, week: results[0]!.people, filling }
+  const { people, goals, results, filling, food } = await weeksNutrition(env, [weekId], defer)
+  const days = results[0]!.days.map((d) => ({ ...d, food: food.filter((f) => f.date === d.date) }))
+  return { weekId, people, goals, days, week: results[0]!.people, filling }
 }
 
 // The last `weeks` weeks ending with `end`, each person's average per day.
@@ -136,7 +143,10 @@ export async function trendsView(env: Env, end: string, weeks: number, defer: De
     weeks: weekIds.map((weekId, i) => ({
       weekId,
       people: Object.fromEntries(
-        people.map((p) => [p, averageDays(results[i]!.days.filter((d) => d.date <= through).map((d) => d.people[p]!))]),
+        people.map((p) => {
+          const days = results[i]!.days.filter((d) => d.date <= through).map((d) => d.people[p]!)
+          return [p, { ...averageDays(days), adherence: adherenceSummary(days).rate }]
+        }),
       ),
     })),
   }

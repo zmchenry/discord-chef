@@ -39,6 +39,7 @@ import { notificationRoutes } from './notifications/routes'
 import { pantryRoutes } from './pantry/routes'
 import { runNutritionBackfill } from './nutrition/backfill'
 import { nutritionAfterWrites, nutritionRoutes } from './nutrition/routes'
+import { foodLogRoutes } from './foodLog/routes'
 import { planningRoutes } from './planning/routes'
 import { priceRoutes } from './prices/routes'
 import { recipePresentationRoutes } from './recipePresentation/routes'
@@ -210,6 +211,7 @@ app.route('/', guidedDinnersRoutes)
 app.route('/', calendarRefreshRoutes)
 app.route('/', discoveryRoutes)
 app.route('/', nutritionRoutes)
+app.route('/', foodLogRoutes)
 
 // --- Catalog ---------------------------------------------------------------
 

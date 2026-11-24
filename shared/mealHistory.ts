@@ -289,7 +289,7 @@ export function historyStats(entries: MealEntry[], meta: Map<string, RecipeMeta>
 // Facts: short, true statements about the last few weeks. They ground the
 // Claude insights, and they are the insights when there is no API key.
 
-export type InsightAction = { type: 'recipe'; recipeId: string; title: string } | { type: 'idea'; query: string }
+export type InsightAction = { type: 'recipe'; recipeId: string; title: string } | { type: 'idea'; query: string; label?: string }
 
 export interface Fact {
   text: string
@@ -397,7 +397,8 @@ export function historyFacts(entries: MealEntry[], meta: Map<string, RecipeMeta>
 
 export const insightActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('recipe'), recipeId: z.string(), title: z.string() }),
-  z.object({ type: z.literal('idea'), query: z.string() }),
+  // label: the button text, when not the default "Idea: find … recipes".
+  z.object({ type: z.literal('idea'), query: z.string(), label: z.string().optional() }),
 ])
 
 const recipeRefSchema = z.object({

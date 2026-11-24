@@ -3,7 +3,7 @@
 // Pure: no I/O.
 
 import type { Nutrients } from './recipe'
-import type { Goal, Goals, PersonDay } from './week'
+import { countsDay, type Goal, type Goals, type PersonDay } from './week'
 
 // The macros the views show, in display order. Fiber is optional.
 export const MACROS = ['kcal', 'protein', 'carbs', 'fat', 'fiber'] as const
@@ -65,6 +65,8 @@ export function versusGoal(value: number, goal: number | null | undefined): Prog
 export interface DayAverage {
   // Per day over the days with at least one known meal; null with none.
   perDay: Nutrients | null
+  // What the plan alone would have given, averaged over the same days.
+  planPerDay: Nutrients | null
   // Days averaged, days among them with some meals unknown, and days at
   // home with nothing known (left out, never counted as zero).
   days: number
@@ -72,16 +74,22 @@ export interface DayAverage {
   unknown: number
 }
 
-// Average of a person's days. Away days are left out; so are home days with
-// no known meal: an unknown day is a gap, not a zero.
-export function averageDays(days: ReadonlyArray<Pick<PersonDay, 'home' | 'totals' | 'known' | 'gaps'>>): DayAverage {
-  const home = days.filter((d) => d.home)
+// Average of a person's days. Away days are left out (unless they logged
+// food); so are home days with no known meal: an unknown day is a gap, not
+// a zero.
+export function averageDays(
+  days: ReadonlyArray<Pick<PersonDay, 'home' | 'totals' | 'known' | 'gaps'> & Partial<Pick<PersonDay, 'plan' | 'logged'>>>,
+): DayAverage {
+  const home = days.filter(countsDay)
   const known = home.filter((d) => d.known > 0)
-  if (!known.length) return { perDay: null, days: 0, partial: 0, unknown: home.length }
-  const sum = (k: keyof Nutrients) => known.reduce((a, d) => a + d.totals[k], 0)
-  const avg = (k: keyof Nutrients) => Math.round(sum(k) / known.length)
+  if (!known.length) return { perDay: null, planPerDay: null, days: 0, partial: 0, unknown: home.length }
+  const avgOf = (pick: (d: (typeof known)[number]) => Nutrients | undefined) => {
+    const avg = (k: keyof Nutrients) => Math.round(known.reduce((a, d) => a + (pick(d)?.[k] ?? 0), 0) / known.length)
+    return { kcal: avg('kcal'), protein: avg('protein'), carbs: avg('carbs'), fat: avg('fat'), fiber: avg('fiber') }
+  }
   return {
-    perDay: { kcal: avg('kcal'), protein: avg('protein'), carbs: avg('carbs'), fat: avg('fat'), fiber: avg('fiber') },
+    perDay: avgOf((d) => d.totals),
+    planPerDay: known.some((d) => d.plan) ? avgOf((d) => d.plan) : null,
     days: known.length,
     partial: known.filter((d) => d.gaps > 0).length,
     unknown: home.length - known.length,
