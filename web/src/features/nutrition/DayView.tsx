@@ -6,6 +6,8 @@ import { hasAnyGoal, MACRO_SHORT } from "../../../../shared/nutrition/goals";
 import { formatServings } from "../../../../shared/household/servings";
 import { addDays, sundayOf } from "../../../../shared/planningApi";
 import { Card, StateMessage } from "../../components/ui";
+import { MealFood, SnackFood } from "../foodLog/DayFood";
+import { LogFoodButton } from "../foodLog/FoodRows";
 import { MARKER_LABEL, MEAL_LABEL } from "../planning/format";
 import { useWeek } from "../planning/queries";
 import { useWeekNutrition } from "./api";
@@ -44,6 +46,7 @@ export function DayView({ date, onDate }: { date: string; onDate: (d: string) =>
           <ChevronRight size={22} aria-hidden="true" />
         </button>
       </div>
+      <LogFoodButton date={date} className="w-full lg:w-auto lg:justify-self-start" />
 
       {q.isPending ? (
         <StateMessage title="Adding it up…" />
@@ -74,9 +77,9 @@ function DayBody({ data, day, weekId }: { data: WeekNutritionWire; day: DayNutri
             <Card key={name} className="grid gap-3 p-4">
               <div className="flex items-center justify-between gap-2">
                 <PersonName name={name} index={i} className="text-lg" />
-                {p.home && p.known > 0 && <Est />}
+                {(p.home || p.logged > 0) && p.known > 0 && <Est />}
               </div>
-              {!p.home ? (
+              {!p.home && !p.logged ? (
                 <p className="m-0 text-muted">Away today, so nothing planned counts.</p>
               ) : p.known === 0 ? (
                 <p className="m-0 text-muted">
@@ -121,7 +124,9 @@ function MealsBreakdown({ data, day, weekId }: { data: WeekNutritionWire; day: D
           const title = m.title ?? slotTitle(m);
           const linkId = m.recipeId ?? m.serves.sourceId;
           const why =
-            m.history === "ate_out"
+            home.length > 0 && home.every((p) => m.replacedFor.includes(p.name))
+              ? "Logged instead"
+              : m.history === "ate_out"
               ? "Ate out · not counted"
               : m.history === "skipped"
                 ? "Skipped · not counted"
@@ -155,6 +160,13 @@ function MealsBreakdown({ data, day, weekId }: { data: WeekNutritionWire; day: D
               {m.status === "known" && m.perServing && (
                 <ul className="m-0 grid list-none gap-1 p-0">
                   {home.map(({ name, i }) => {
+                    if (m.replacedFor.includes(name))
+                      return (
+                        <li key={name} className="flex items-baseline justify-between gap-x-3 text-sm">
+                          <PersonName name={name} index={i} className="font-semibold" />
+                          <span className="text-muted">Logged their own · not counted</span>
+                        </li>
+                      );
                     const portion = m.portions[name] ?? 0;
                     const n = (k: keyof typeof m.perServing) => Math.round(m.perServing![k] * portion);
                     return (
@@ -173,9 +185,11 @@ function MealsBreakdown({ data, day, weekId }: { data: WeekNutritionWire; day: D
                   })}
                 </ul>
               )}
+              <MealFood items={day.food} meal={m.meal} />
             </div>
           );
         })}
+        <SnackFood items={day.food} />
       </Card>
     </section>
   );

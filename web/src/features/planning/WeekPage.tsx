@@ -29,6 +29,7 @@ import { useFillBreakfastLunch } from "../guidedDinners/api";
 import { PlanDinnersFlow } from "../guidedDinners/PlanDinnersFlow";
 import { CheckInCard } from "../mealHistory/CheckInCard";
 import { TodayCard } from "../nutrition/TodayCard";
+import { LogFoodFab } from "../foodLog/FoodRows";
 import { DayCard } from "./DayCard";
 import { money, shortDate } from "./format";
 import { RecommendationCard } from "./RecommendationCard";
@@ -179,6 +180,7 @@ export function WeekPage() {
         </div>
       </div>
       {weekId === thisWeek && <TodayCard className="mx-4 mb-3" />}
+      {weekId === thisWeek && <LogFoodFab />}
 
       {week.isPending ? (
         <StateMessage title="Loading the week…" />

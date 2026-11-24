@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type { Insight } from "../../../../shared/mealHistory";
 import { cx } from "../../lib/cx";
 import { useGenerateIdeas } from "../discovery/api";
+import { TuneSection } from "../foodLog/TuneSection";
 import { useInsights, useRefreshInsights } from "./api";
 
 const relTime = new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
@@ -59,6 +60,7 @@ export function InsightsCard() {
         </ul>
       )}
       {refresh.isError && <p className="m-0 text-sm font-semibold text-danger">{refresh.error.message}</p>}
+      <TuneSection />
     </section>
   );
 }
@@ -84,7 +86,7 @@ function InsightItem({ item }: { item: Insight }) {
           onClick={() => ideas.mutate({ theme: action.query }, { onSuccess: () => navigate("/recipes/ideas") })}
         >
           <Search size={16} aria-hidden="true" />
-          {ideas.isPending ? "Searching recipe sites…" : `Idea: find “${action.query}” recipes`}
+          {ideas.isPending ? "Searching recipe sites…" : (action.label ?? `Idea: find “${action.query}” recipes`)}
         </button>
       )}
       {ideas.isError && <p className="m-0 text-sm font-semibold text-danger">{ideas.error.message}</p>}

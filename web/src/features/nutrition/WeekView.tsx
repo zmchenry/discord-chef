@@ -6,6 +6,7 @@ import { averageDays, hasAnyGoal, MACRO_LABEL, MACRO_UNIT, versusGoal, type Macr
 import { addDays, todayIn } from "../../../../shared/planningApi";
 import { Card, StateMessage } from "../../components/ui";
 import { dayName, shortDate } from "../planning/format";
+import { PlanVsActual } from "../foodLog/PlanVsActual";
 import { useWeekNutrition } from "./api";
 import { ColumnChart, type ChartPoint } from "./charts";
 import { fmt, goalFor, macroOptions, personFill, shownMacros, withUnit } from "./format";
@@ -85,6 +86,7 @@ export function WeekView({
               />
             ))}
           </div>
+          <PlanVsActual data={q.data} macro={macro} />
           <Averages data={q.data} />
           <DailyTable data={q.data} macro={macro} />
           <p className="m-0 text-sm text-muted">

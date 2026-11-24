@@ -7,6 +7,7 @@ import { addDays, sundayOf } from "../../../../shared/planningApi";
 import { MEALS, mealSchema, type Meal } from "../../../../shared/schema";
 import { PageHeader, StateMessage } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { WeekFood } from "../foodLog/HistoryFood";
 import { BackToMore } from "../planning/SettingsLink";
 import { dayName, MEAL_LABEL, shortDate } from "../planning/format";
 import { useHistory } from "./api";
@@ -115,7 +116,12 @@ export function HistoryPage() {
                 {all.length ? "Try another meal or recipe." : "Planned meals show up here once they're eaten."}
               </StateMessage>
             ) : (
-              [...weeks].map(([week, entries]) => <WeekGroup key={week} week={week} entries={entries} />)
+              [...weeks].map(([week, entries]) => (
+                <div key={week} className="grid gap-2">
+                  <WeekGroup week={week} entries={entries} />
+                  {!recipeId && <WeekFood week={week} meal={meal} />}
+                </div>
+              ))
             )}
           </div>
         </div>

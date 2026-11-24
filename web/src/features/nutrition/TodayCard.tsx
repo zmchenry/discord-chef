@@ -5,6 +5,7 @@ import { hasAnyGoal, MACRO_SHORT, type Macro } from "../../../../shared/nutritio
 import { sundayOf, todayIn } from "../../../../shared/planningApi";
 import { Card } from "../../components/ui";
 import { cx } from "../../lib/cx";
+import { LogFoodButton } from "../foodLog/FoodRows";
 import { useWeekNutrition } from "./api";
 import { FALLBACK_MAX, fmt, goalFor, personFill } from "./format";
 import { GoalBar } from "./GoalBar";
@@ -21,7 +22,8 @@ export function TodayCard({ className }: { className?: string }) {
   if (!q.data || !day) return null;
   const { people, goals } = q.data;
   const noGoals = !hasAnyGoal(goals);
-  const anyKnown = people.some((p) => day.people[p]!.home && day.people[p]!.known > 0);
+  const anyKnown = people.some((p) => (day.people[p]!.home || day.people[p]!.logged > 0) && day.people[p]!.known > 0);
+  const logged = day.food.length;
 
   return (
     <Card className={cx("grid", className)}>
@@ -52,7 +54,7 @@ export function TodayCard({ className }: { className?: string }) {
             {people.map((name, i) => {
               const d = day.people[name]!;
               const g = goalFor(goals, name);
-              if (!d.home)
+              if (!d.home && !d.logged)
                 return (
                   <span key={name} className="flex items-center justify-between text-sm">
                     <PersonName name={name} index={i} />
@@ -91,6 +93,12 @@ export function TodayCard({ className }: { className?: string }) {
           </span>
         )}
       </Link>
+      <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-2">
+        <span className="text-sm text-muted">
+          {logged ? `${logged} item${logged === 1 ? "" : "s"} logged today` : "Ate something else, or a snack?"}
+        </span>
+        <LogFoodButton date={today} />
+      </div>
       {noGoals && (
         <p className="m-0 flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 text-sm text-muted">
           No goals yet.

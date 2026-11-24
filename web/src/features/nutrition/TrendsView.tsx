@@ -5,6 +5,7 @@ import { hasAnyGoal, MACRO_LABEL, MACRO_UNIT, type Macro } from "../../../../sha
 import { sundayOf, todayIn } from "../../../../shared/planningApi";
 import { Card, StateMessage } from "../../components/ui";
 import { shortDate } from "../planning/format";
+import { AdherenceTrend } from "../foodLog/PlanVsActual";
 import { useTrends } from "./api";
 import { LineChart, type ChartPoint } from "./charts";
 import { fmt, goalFor, macroOptions, personSvg, shownMacros, withUnit } from "./format";
@@ -38,9 +39,10 @@ export function TrendsView({ macro, onMacro, onOpenWeek }: { macro: Macro; onMac
           />
         ))}
       </div>
+      <AdherenceTrend data={data} macro={macro} picked={picked} onPick={setPicked} />
       <TrendTable data={data} macro={macro} />
       <p className="m-0 text-sm text-muted">
-        Average per day from planned meals, leaving out unknown days. This week counts through today.
+        Average per day from planned meals and the food log, leaving out unknown days. This week counts through today.
       </p>
     </div>
   );
