@@ -1,11 +1,11 @@
-import { Check, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, MoreHorizontal, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { HistoryEntryWire } from "../../../../shared/mealHistory";
 import { todayIn } from "../../../../shared/planningApi";
-import { cx } from "../../lib/cx";
-import { MEAL_LABEL, pill } from "../planning/format";
+import { Button } from "../../components/ui";
+import { MEAL_LABEL } from "../planning/format";
 import { useLogMeal, usePending } from "./api";
 import { EntryMenu } from "./EntryMenu";
 import { EntryThumb } from "./EntryThumb";
@@ -41,7 +41,7 @@ export function CheckInCard() {
     Promise.all(open.map((e) => log.mutateAsync({ date: e.date, meal: e.meal, status: e.status }))).catch(() => undefined);
 
   return (
-    <section aria-labelledby="check-in-title" className="min-w-0 rounded-card bg-surface p-3 shadow-card">
+    <section aria-labelledby="check-in-title" className="grid min-w-0 gap-2">
       <div className="flex items-center justify-between gap-2 px-1">
         <h2 id="check-in-title" className="m-0 font-body text-xs font-bold uppercase tracking-wider text-muted">
           How did it go?
@@ -50,62 +50,73 @@ export function CheckInCard() {
           History
         </Link>
       </div>
-      <ul className="m-0 grid min-w-0 list-none gap-1 p-0">
+      <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
         {shown.map((e) => {
           const when = `${e.date === today ? "Today" : "Yesterday"} · ${MEAL_LABEL[e.meal]}`;
           const Status = STATUS[e.status];
           return (
-            <li key={key(e)} className="flex min-h-14 min-w-0 items-center gap-3 rounded-sm px-1 py-1">
-              <EntryThumb entry={e} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{entryTitle(e)}</span>
-                <span className="block text-sm text-muted">
-                  {when}
-                  {e.confirmed && e.status !== "eaten" && ` · ${Status.label}`}
+            <li key={key(e)} className="grid min-w-0 gap-3 rounded-card bg-surface p-3 shadow-card">
+              <div className="flex min-w-0 items-center gap-3">
+                <EntryThumb entry={e} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{entryTitle(e)}</span>
+                  <span className="block text-sm text-muted">
+                    {when}
+                    {e.confirmed && e.status !== "eaten" && ` · ${Status.label}`}
+                  </span>
                 </span>
-              </span>
-              {!e.confirmed ? (
-                <button
-                  type="button"
-                  className={cx(pill, "min-h-10 shrink-0 px-3 text-sm text-primary shadow-[inset_0_0_0_1.5px_currentColor]")}
-                  disabled={log.isPending}
-                  aria-label={`Ate ${entryTitle(e)}`}
-                  onClick={() => log.mutate({ date: e.date, meal: e.meal, status: e.status }, { onSuccess: () => touch(e) })}
-                >
-                  <Check size={16} aria-hidden="true" strokeWidth={2.5} />
-                  {e.status === "eaten" ? "Ate it" : Status.label}
-                </button>
-              ) : rateable(e) ? (
-                <span className="flex shrink-0 items-center" role="group" aria-label={`Rate ${entryTitle(e)}`}>
-                  {([1, -1] as const).map((r) => {
-                    const Icon = r === 1 ? ThumbsUp : ThumbsDown;
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        aria-label={r === 1 ? "Loved it" : "Not again"}
-                        disabled={log.isPending}
-                        onClick={() => log.mutate({ date: e.date, meal: e.meal, status: e.status, rating: r }, { onSuccess: () => touch(e) })}
-                        className="pressable grid size-11 place-items-center rounded-full bg-transparent text-muted hover:bg-surface-2"
-                      >
-                        <Icon size={20} aria-hidden="true" />
-                      </button>
-                    );
-                  })}
-                </span>
-              ) : (
-                <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-accent" role="status">
-                  {e.rating === 1 ? <ThumbsUp size={16} aria-hidden="true" /> : e.rating === -1 ? <ThumbsDown size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
-                  Saved
-                </span>
-              )}
-              <EntryMenu entry={e} onLogged={() => touch(e)} />
+              </div>
+              {/* Footer: other answers on the left, the one-tap answer on the right. */}
+              <div className="flex min-w-0 items-center justify-between gap-2 border-t border-border pt-2">
+                <EntryMenu
+                  entry={e}
+                  onLogged={() => touch(e)}
+                  trigger={
+                    <>
+                      <MoreHorizontal size={18} aria-hidden="true" /> More options
+                    </>
+                  }
+                  triggerClassName="pressable inline-flex min-h-11 items-center gap-1.5 rounded-full bg-transparent px-2 text-sm font-semibold text-muted hover:bg-surface-2"
+                />
+                {!e.confirmed ? (
+                  <Button
+                    disabled={log.isPending}
+                    aria-label={`Ate ${entryTitle(e)}`}
+                    onClick={() => log.mutate({ date: e.date, meal: e.meal, status: e.status }, { onSuccess: () => touch(e) })}
+                  >
+                    <Check size={18} aria-hidden="true" strokeWidth={2.5} />
+                    {e.status === "eaten" ? "Ate it" : Status.label}
+                  </Button>
+                ) : rateable(e) ? (
+                  <span className="flex shrink-0 items-center gap-2" role="group" aria-label={`Rate ${entryTitle(e)}`}>
+                    {([-1, 1] as const).map((r) => {
+                      const Icon = r === 1 ? ThumbsUp : ThumbsDown;
+                      return (
+                        <Button
+                          key={r}
+                          variant={r === 1 ? "primary" : "secondary"}
+                          aria-label={r === 1 ? "Loved it" : "Not again"}
+                          disabled={log.isPending}
+                          onClick={() => log.mutate({ date: e.date, meal: e.meal, status: e.status, rating: r }, { onSuccess: () => touch(e) })}
+                        >
+                          <Icon size={18} aria-hidden="true" />
+                        </Button>
+                      );
+                    })}
+                  </span>
+                ) : (
+                  <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-accent" role="status">
+                    {e.rating === 1 ? <ThumbsUp size={16} aria-hidden="true" /> : e.rating === -1 ? <ThumbsDown size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+                    Saved
+                  </span>
+                )}
+              </div>
             </li>
           );
         })}
       </ul>
       {(rows.length > shown.length || open.length > 1) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-1 pt-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
           {rows.length > shown.length ? (
             <button type="button" onClick={() => setAll(true)} className="pressable inline-flex min-h-11 items-center bg-transparent p-0 text-sm font-semibold text-primary">
               {rows.length - shown.length} more

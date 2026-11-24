@@ -1,5 +1,5 @@
 import { ThumbsDown, ThumbsUp } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { HistoryEntryWire, MealStatus } from "../../../../shared/mealHistory";
 import type { Meal } from "../../../../shared/schema";
@@ -13,9 +13,14 @@ import { SomethingElseModal } from "./SomethingElseModal";
 export function EntryMenu({
   entry,
   onLogged,
+  trigger,
+  triggerClassName,
 }: {
   entry: Pick<HistoryEntryWire, "date" | "meal" | "status" | "confirmed" | "rating" | "recipe" | "plannedKind" | "freeText">;
   onLogged?: () => void;
+  /** Button content instead of the ⋯ icon, e.g. "More options". */
+  trigger?: ReactNode;
+  triggerClassName?: string;
 }) {
   const log = useLogMeal();
   const [swapping, setSwapping] = useState(false);
@@ -49,7 +54,8 @@ export function EntryMenu({
         items={items}
         label={`Change ${dayName(entry.date)} ${MEAL_LABEL[entry.meal as Meal].toLowerCase()}`}
         title={`${dayName(entry.date)} ${MEAL_LABEL[entry.meal as Meal].toLowerCase()}`}
-        triggerClassName="pressable grid size-11 place-items-center rounded-full bg-transparent text-muted hover:bg-surface-2"
+        trigger={trigger}
+        triggerClassName={triggerClassName ?? "pressable grid size-11 place-items-center rounded-full bg-transparent text-muted hover:bg-surface-2"}
       />
       {swapping && (
         <SomethingElseModal
